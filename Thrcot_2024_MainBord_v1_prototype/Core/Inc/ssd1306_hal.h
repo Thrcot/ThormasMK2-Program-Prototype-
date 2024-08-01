@@ -31,6 +31,7 @@ void OLED_Horizontal_Display(int x_s, int x_e, int y);
 void OLED_Vartical_Display(int y_s, int y_e, int x);
 void OLED_Line_Display(int x_s, int y_s, int x_e, int y_e);
 void OLED_Circle_Draw(int x_0, int y_0, int radiation);
+void OLED_DataClear(void);
 void OLED_AllClear(I2C_HandleTypeDef *hi2c);
 
 #endif /* INC_SSD1306_HAL_H_ */

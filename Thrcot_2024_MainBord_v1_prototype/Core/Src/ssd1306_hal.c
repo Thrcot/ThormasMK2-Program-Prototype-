@@ -466,6 +466,17 @@ void OLED_Circle_Draw(int x_0, int y_0, int radiation)
 	}
 }
 
+void OLED_DataClear(void)
+{
+	for (int i = 0; i < 8; i++) {
+		All_Display_Data[i][0] = 0x40;
+
+		for (int j = 1; j <= 128; j++) {
+			All_Display_Data[i][j] = 0x00;
+		}
+	}
+}
+
 void OLED_AllClear(I2C_HandleTypeDef *hi2c)
 {
 	uint8_t Clear_Range[] = {0x00, 0x22, 0, 7, 0x21, 0, 127};

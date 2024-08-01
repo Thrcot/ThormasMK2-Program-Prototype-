@@ -106,10 +106,26 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  OLED_Circle_Draw(63, 31, 25);
-	  OLED_Line_Display(0, 31, 127, 31);
-	  OLED_Line_Display(63, 0, 63, 63);
-	  OLED_Display(&hi2c2);
+	  if (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0) {
+		  OLED_Circle_Draw(63, 31, 10);
+	  }
+
+	  if (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 0) {
+		  OLED_Circle_Draw(63, 31, 15);
+	  }
+
+	  if (HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin) == 0) {
+		  OLED_Circle_Draw(63, 31, 20);
+	  }
+
+	  if (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 0) {
+		  OLED_DataClear();
+	  } else {
+		  OLED_Line_Display(0, 31, 127, 31);
+		  OLED_Line_Display(63, 0, 63, 63);
+
+		  OLED_Display(&hi2c2);
+	  }
   }
   /* USER CODE END 3 */
 }
@@ -215,6 +231,7 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
@@ -226,6 +243,18 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : Start_sw_Pin */
+  GPIO_InitStruct.Pin = Start_sw_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(Start_sw_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : SW1_Pin SW2_Pin SW3_Pin */
+  GPIO_InitStruct.Pin = SW1_Pin|SW2_Pin|SW3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
