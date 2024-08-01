@@ -94,9 +94,9 @@ int main(void)
   OLED_Init(&hi2c2, OLED_Init_Data, sizeof(OLED_Init_Data));
 
   OLED_Thrcot_Large_Logo_Display(&hi2c2);
-  HAL_Delay(5000);
+  HAL_Delay(3000);
   OLED_AllClear(&hi2c2);
-  HAL_Delay(1000);
+  HAL_Delay(500);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -106,6 +106,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  OLED_Circle_Draw(63, 31, 25);
+	  OLED_Line_Display(0, 31, 127, 31);
+	  OLED_Line_Display(63, 0, 63, 63);
+	  OLED_Display(&hi2c2);
   }
   /* USER CODE END 3 */
 }

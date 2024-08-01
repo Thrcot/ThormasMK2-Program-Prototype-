@@ -31,6 +31,16 @@ long map(long x, long min_in, long max_in, long min_out, long max_out)
 	return (x - min_in) * (max_out - min_out) / (max_in - min_out) + min_out;
 }
 
+uint8_t Changing_Y_page(int Y)
+{
+	return Y / 8;
+}
+
+uint8_t Changing_Y_val(int Y)
+{
+	return 0x01 << (Y % 8);
+}
+
 void OLED_Init(I2C_HandleTypeDef *hi2c, uint8_t *Init_data, int size)
 {
 	HAL_I2C_Master_Transmit(hi2c, OLED_ADR, Init_data, size, HAL_MAX_DELAY);
@@ -289,10 +299,10 @@ void OLED_Dot_Display(int x, int y)
 	int Page;
 	uint8_t Dot_Data;
 
-	Page = x / 8;
-	Dot_Data = 0x01 << (x % 8);
+	Page = y / 8;
+	Dot_Data = 0x01 << (y % 8);
 
-	All_Display_Data[Page][y + 1] |= Dot_Data;
+	All_Display_Data[Page][x + 1] |= Dot_Data;
 }
 
 void OLED_Horizontal_Display(int x_s, int x_e, int y)
@@ -427,6 +437,32 @@ void OLED_Line_Display(int x_s, int y_s, int x_e, int y_e)
 											+ Data_Map[y_map-7][x_map];
 			}
 		}
+	}
+}
+
+void OLED_Circle_Draw(int x_0, int y_0, int radiation)
+{
+	int x = radiation;
+	int y = 0;
+	int F = -2 * radiation + 3;
+
+	while (x >= y) {
+		OLED_Dot_Display(x_0 + x, y_0 + y);
+		OLED_Dot_Display(x_0 + x, y_0 - y);
+		OLED_Dot_Display(x_0 - x, y_0 + y);
+		OLED_Dot_Display(x_0 - x, y_0 - y);
+		OLED_Dot_Display(x_0 + y, y_0 + x);
+		OLED_Dot_Display(x_0 + y, y_0 - x);
+		OLED_Dot_Display(x_0 - y, y_0 + x);
+		OLED_Dot_Display(x_0 - y, y_0 - x);
+
+		if (F >= 0) {
+			x--;
+			F -= 4 * x;
+		}
+
+		y++;
+		F += 4 * y +2;
 	}
 }
 
