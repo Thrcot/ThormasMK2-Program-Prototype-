@@ -56,6 +56,12 @@ static void MX_GPIO_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_USART6_UART_Init(void);
 /* USER CODE BEGIN PFP */
+int SW1_keep_state(void);
+int SW2_keep_state(void);
+int SW3_keep_state(void);
+int StartSW_keep_state(void);
+
+void Audio_Setting(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -101,8 +107,10 @@ int main(void)
 
   OLED_Thrcot_Large_Logo_Display(&hi2c2);
   HAL_Delay(3000);
+
   OLED_AllClear(&hi2c2);
-  HAL_Delay(500);
+
+  Audio_Setting();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -112,26 +120,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0) {
-		  OLED_Circle_Draw(63, 31, 10);
-	  }
-
-	  if (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 0) {
-		  OLED_Circle_Draw(63, 31, 15);
-	  }
-
-	  if (HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin) == 0) {
-		  OLED_Circle_Draw(63, 31, 20);
-	  }
-
-	  if (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 0) {
-		  OLED_DataClear();
-	  } else {
-		  OLED_Line_Display(0, 31, 127, 31);
-		  OLED_Line_Display(63, 0, 63, 63);
-
-		  OLED_Display(&hi2c2);
-	  }
   }
   /* USER CODE END 3 */
 }
@@ -289,8 +277,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(Start_sw_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SW1_Pin SW2_Pin SW3_Pin */
-  GPIO_InitStruct.Pin = SW1_Pin|SW2_Pin|SW3_Pin;
+  /*Configure GPIO pins : SW2_Pin SW1_Pin SW3_Pin */
+  GPIO_InitStruct.Pin = SW2_Pin|SW1_Pin|SW3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -300,7 +288,101 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+int StartSW_keep_state(void)
+{
+	static int pre_state = 0;
+	static int keep_state = 0;
+	int SW_state = 1 - HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin);
 
+	if (SW_state == 1 && pre_state == 0) {
+		keep_state = 1 - keep_state;
+	}
+
+	pre_state = SW_state;
+
+	return keep_state;
+}
+
+int SW1_keep_state(void)
+{
+	static int pre_state = 0;
+	static int keep_state = 0;
+	int SW_state = 1 - HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin);
+
+	if (SW_state == 1 && pre_state == 0) {
+		keep_state = 1 - keep_state;
+	}
+
+	pre_state = SW_state;
+
+	return keep_state;
+}
+
+int SW2_keep_state(void)
+{
+	static int pre_state = 0;
+	static int keep_state = 0;
+	int SW_state = 1 - HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin);
+
+	if (SW_state == 1 && pre_state == 0) {
+		keep_state = 1 - keep_state;
+	}
+
+	pre_state = SW_state;
+
+	return keep_state;
+}
+
+int SW3_keep_state(void)
+{
+	static int pre_state = 0;
+	static int keep_state = 0;
+	int SW_state = 1 - HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin);
+
+	if (SW_state == 1 && pre_state == 0) {
+		keep_state = 1 - keep_state;
+	}
+
+	pre_state = SW_state;
+
+	return keep_state;
+}
+
+void Audio_Setting(void)
+{
+	DFP_Pause();
+
+	int volume = 0;
+
+	while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 1) {
+		static int preSW2 = 0;
+		static int preSW3 = 0;
+
+		int SW2 = SW2_keep_state();
+		int SW3 = SW3_keep_state();
+
+		if (SW2 != preSW2) {
+			volume = (volume == 0) ? 0 : volume - 1;
+		}
+
+		if (SW3 != preSW3) {
+			volume = (volume == 30) ? 30 : volume + 1;
+		}
+
+		OLED_DataClear();
+		OLED_Line_Display(19, 45, 108, 45);
+		OLED_Circle_Draw(volume * 3 + 19, 45, 5);
+		OLED_Display(&hi2c2);
+
+		preSW2 = SW2;
+		preSW3 = SW3;
+	}
+
+	OLED_AllClear(&hi2c2);
+
+	DFP_Volume(volume);
+	DFP_Play(1);
+}
 /* USER CODE END 4 */
 
 /**
