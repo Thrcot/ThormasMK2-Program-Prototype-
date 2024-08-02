@@ -43,7 +43,42 @@ void DFP_Init(UART_HandleTypeDef *serial)
 {
 	DFP_serial = serial;
 
-	while (DFP_Send_Data(0x0B, 0x00, 0x00, DFP_ENABLE) != DFP_OK) {
+	while (DFP_Send_Data(FD_NW, 0x00, 0x00, DFP_ENABLE) != DFP_OK) {
 		;
 	}
+
+	HAL_Delay(100);
+
+	DFP_Pause();
+	DFP_Volume(10);
+}
+
+void DFP_Restart(void)
+{
+	DFP_Send_Data(FD_PLAY, 0x00, 0x00, DFP_DISABLE);
+}
+
+void DFP_Pause(void)
+{
+	DFP_Send_Data(FD_PAUSE, 0x00, 0x00, DFP_DISABLE);
+}
+
+void DFP_Volume(int volume)
+{
+	if (volume <= 30 && volume >= 0) {
+		DFP_Send_Data(FD_VOL, 0x00, volume, DFP_DISABLE);
+	}
+}
+
+void DFP_Reset(void)
+{
+	DFP_Send_Data(FD_RES, 0x00, 0x00, DFP_DISABLE);
+}
+
+void DFP_Play(int fileNUM)
+{
+	uint8_t MSB = fileNUM >> 8;
+	uint8_t LSB = fileNUM & 0xFF;
+
+	DFP_Send_Data(FD_SPEC, MSB, LSB, DFP_DISABLE);
 }

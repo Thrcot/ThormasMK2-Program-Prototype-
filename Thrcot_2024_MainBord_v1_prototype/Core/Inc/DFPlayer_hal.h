@@ -35,6 +35,12 @@
 extern UART_HandleTypeDef *DFP_serial;
 
 int DFP_Send_Data(uint8_t cmd, uint8_t MSB, uint8_t LSB, uint8_t feedback);
+
 void DFP_Init(UART_HandleTypeDef *serial);
+void DFP_Restart(void);
+void DFP_Pause(void);
+void DFP_Volume(int volume);
+void DFP_Reset(void);
+void DFP_Play(int fileNUM);
 
 #endif /* INC_DFPLAYER_HAL_H_ */
