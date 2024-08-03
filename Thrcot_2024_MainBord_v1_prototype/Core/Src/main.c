@@ -120,6 +120,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  uint8_t message[] = "!";
+
+	  OLED_Char_Print("!", 0, 0);
+	  OLED_Display(&hi2c2);
   }
   /* USER CODE END 3 */
 }

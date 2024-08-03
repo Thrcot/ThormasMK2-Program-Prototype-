@@ -495,3 +495,57 @@ void OLED_AllClear(I2C_HandleTypeDef *hi2c)
 		HAL_I2C_Master_Transmit(hi2c, OLED_ADR, All_Display_Data[i], sizeof(All_Display_Data[i]), HAL_MAX_DELAY);
 	}
 }
+
+void OLED_Char_Print(uint8_t *message, int x, int y)
+{
+	int MessageSize = 0;
+	int Flag = 0;
+	int X_position = 0;
+	int Y_position = 0;
+	int Y_page = 0;
+
+	uint8_t MSB_Data = 0;
+	uint8_t LSB_Data = 0;
+	uint8_t Message_Data[6];
+
+	while (message[MessageSize] != 0x00) {
+		switch (message[MessageSize]) {
+			case 0x21:
+				Font_Exclamation(Message_Data);
+				break;
+
+			default:
+				Flag = 1;
+				break;
+		}
+
+		if (Flag != 1) {
+			X_position = x + MessageSize * 6;
+			Y_position = y + 7;
+			Y_page = Y_position / 8;
+
+			if (Y_position % 8 == 7) {
+				for (int i = 1; i <= 6; i++) {
+					All_Display_Data[Y_page][X_position + i] |= Message_Data[i-1];
+				}
+			} else {
+				uint8_t Y_page2 = Y_page - 1;
+
+				for (int i = 1; i <= 6; i++) {
+					MSB_Data = Message_Data[i-1] >> (Y_position % 8);
+
+					for (int j = 0; j < (Y_position % 8); j++) {
+						LSB_Data |= 0x80 >> j;
+					}
+
+					LSB_Data = Message_Data[i-1] & LSB_Data;
+
+					All_Display_Data[Y_page2][X_position + i] |= LSB_Data;
+					All_Display_Data[Y_page][X_position + i] |= MSB_Data;
+				}
+			}
+		}
+
+		MessageSize++;
+	}
+}
