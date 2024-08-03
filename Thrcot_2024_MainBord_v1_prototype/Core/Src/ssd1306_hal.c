@@ -514,6 +514,38 @@ void OLED_Char_Print(uint8_t *message, int x, int y)
 				Font_Exclamation(Message_Data);
 				break;
 
+			case 0x22:
+				Font_Double_Quotation(Message_Data);
+				break;
+
+			case 0x23:
+				Font_Sharp(Message_Data);
+				break;
+
+			case 0x24:
+				Font_Dollar(Message_Data);
+				break;
+
+			case 0x25:
+				Font_Percent(Message_Data);
+				break;
+
+			case 0x26:
+				Font_And(Message_Data);
+				break;
+
+			case 0x27:
+				Font_Single_Quotation(Message_Data);
+				break;
+
+			case 0x28:
+				Font_Left_Bracket(Message_Data);
+				break;
+
+			case 0x29:
+				Font_Right_Bracket(Message_Data);
+				break;
+
 			default:
 				Flag = 1;
 				break;
