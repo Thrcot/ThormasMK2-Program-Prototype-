@@ -100,7 +100,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  int state = HAL_GPIO_ReadPin(LS1_GPIO_Port, LS1_Pin);
+	  int state = HAL_GPIO_ReadPin(LS2_GPIO_Port, LS2_Pin);
 
 	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, state);
   }
