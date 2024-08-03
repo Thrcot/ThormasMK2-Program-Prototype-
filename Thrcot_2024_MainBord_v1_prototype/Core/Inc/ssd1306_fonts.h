@@ -19,6 +19,22 @@ void Font_And(uint8_t *Font_Data);
 void Font_Single_Quotation(uint8_t *Font_Data);
 void Font_Left_Bracket(uint8_t *Font_Data);
 void Font_Right_Bracket(uint8_t *Font_Data);
+void Font_Asterisk(uint8_t *Font_Data);
+void Font_Plus(uint8_t *Font_Data);
+void Font_Comma(uint8_t *Font_Data);
+void Font_Minus(uint8_t *Font_Data);
+void Font_Period(uint8_t *Font_Data);
+void Font_Slash(uint8_t *Font_Data);
+void Font_0(uint8_t *Font_Data);
+void Font_1(uint8_t *Font_Data);
+void Font_2(uint8_t *Font_Data);
+void Font_3(uint8_t *Font_Data);
+void Font_4(uint8_t *Font_Data);
+void Font_5(uint8_t *Font_Data);
+void Font_6(uint8_t *Font_Data);
+void Font_7(uint8_t *Font_Data);
+void Font_8(uint8_t *Font_Data);
+void Font_9(uint8_t *Font_Data);
 
 void Font_Large_A(uint8_t *Font_Data);
 

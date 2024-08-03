@@ -499,6 +499,7 @@ void OLED_AllClear(I2C_HandleTypeDef *hi2c)
 void OLED_Char_Print(uint8_t *message, int x, int y)
 {
 	int MessageSize = 0;
+	int Next_page = 0;
 	int Flag = 0;
 	int X_position = 0;
 	int Y_position = 0;
@@ -546,15 +547,81 @@ void OLED_Char_Print(uint8_t *message, int x, int y)
 				Font_Right_Bracket(Message_Data);
 				break;
 
+			case 0x2A:
+				Font_Asterisk(Message_Data);
+				break;
+
+			case 0x2B:
+				Font_Plus(Message_Data);
+				break;
+
+			case 0x2C:
+				Font_Comma(Message_Data);
+				break;
+
+			case 0x2D:
+				Font_Minus(Message_Data);
+				break;
+
+			case 0x2E:
+				Font_Period(Message_Data);
+				break;
+
+			case 0x2F:
+				Font_Slash(Message_Data);
+				break;
+
+			case 0x30:
+				Font_0(Message_Data);
+				break;
+
+			case 0x31:
+				Font_1(Message_Data);
+				break;
+
+			case 0x32:
+				Font_2(Message_Data);
+				break;
+
+			case 0x33:
+				Font_3(Message_Data);
+				break;
+
+			case 0x34:
+				Font_4(Message_Data);
+				break;
+
+			case 0x35:
+				Font_5(Message_Data);
+				break;
+
+			case 0x36:
+				Font_6(Message_Data);
+				break;
+
+			case 0x37:
+				Font_7(Message_Data);
+				break;
+
+			case 0x38:
+				Font_8(Message_Data);
+				break;
+
+			case 0x39:
+				Font_9(Message_Data);
+				break;
+
 			default:
 				Flag = 1;
 				break;
 		}
 
 		if (Flag != 1) {
-			X_position = x + MessageSize * 6;
+			Next_page = MessageSize / 21;
+
+			X_position = x + (MessageSize - 21 * Next_page) * 6;
 			Y_position = y + 7;
-			Y_page = Y_position / 8;
+			Y_page = Y_position / 8 + Next_page;
 
 			if (Y_position % 8 == 7) {
 				for (int i = 1; i <= 6; i++) {
