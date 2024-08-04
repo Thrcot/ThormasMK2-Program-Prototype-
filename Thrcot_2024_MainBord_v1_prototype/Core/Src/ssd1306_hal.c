@@ -774,6 +774,85 @@ void OLED_Char_Print(uint8_t *message, int x, int y)
 				Font_Back_Quote(Message_Data);
 				break;
 
+			case 0x61:
+				Font_Small_A(Message_Data);
+				break;
+
+			case 0x62:
+				Font_Small_B(Message_Data);
+				break;
+
+			case 0x63:
+				Font_Small_C(Message_Data);
+				break;
+
+			case 0x64:
+				Font_Small_D(Message_Data);
+				break;
+
+			case 0x65:
+				Font_Small_E(Message_Data);
+				break;
+
+			case 0x66:
+				Font_Small_F(Message_Data);
+				break;
+
+			case 0x67:
+				Font_Small_G(Message_Data);
+				break;
+
+			case 0x68:
+				Font_Small_H(Message_Data);
+				break;
+
+			case 0x69:
+				Font_Small_I(Message_Data);
+				break;
+
+			case 0x6A:
+				Font_Small_J(Message_Data);
+				break;
+
+			case 0x6B:
+				Font_Small_K(Message_Data);
+				break;
+
+			case 0x6C:
+				Font_Small_L(Message_Data);
+				break;
+
+			case 0x6D:
+				Font_Small_M(Message_Data);
+				break;
+
+			case 0x6E:
+				Font_Small_N(Message_Data);
+				break;
+
+			case 0x6F:
+				Font_Small_O(Message_Data);
+				break;
+
+			case 0x70:
+				Font_Small_P(Message_Data);
+				break;
+
+			case 0x71:
+				Font_Small_Q(Message_Data);
+				break;
+
+			case 0x72:
+				Font_Small_R(Message_Data);
+				break;
+
+			case 0x73:
+				Font_Small_S(Message_Data);
+				break;
+
+			case 0x74:
+				Font_Small_T(Message_Data);
+				break;
 			default:
 				Flag = 1;
 				break;

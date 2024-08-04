@@ -655,3 +655,202 @@ void Font_Back_Quote(uint8_t *Font_Data)
 	Font_Data[4] = 0x00;
 	Font_Data[5] = 0x00;
 }
+
+void Font_Small_A(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x20;
+	Font_Data[1] = 0x54;
+	Font_Data[2] = 0x54;
+	Font_Data[3] = 0x78;
+	Font_Data[4] = 0x40;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_B(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x7F;
+	Font_Data[1] = 0x28;
+	Font_Data[2] = 0x44;
+	Font_Data[3] = 0x44;
+	Font_Data[4] = 0x38;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_C(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x38;
+	Font_Data[1] = 0x44;
+	Font_Data[2] = 0x44;
+	Font_Data[3] = 0x44;
+	Font_Data[4] = 0x28;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_D(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x38;
+	Font_Data[1] = 0x44;
+	Font_Data[2] = 0x44;
+	Font_Data[3] = 0x28;
+	Font_Data[4] = 0x7F;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_E(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x38;
+	Font_Data[1] = 0x54;
+	Font_Data[2] = 0x54;
+	Font_Data[3] = 0x54;
+	Font_Data[4] = 0x18;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_F(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x00;
+	Font_Data[1] = 0x08;
+	Font_Data[2] = 0x7E;
+	Font_Data[3] = 0x09;
+	Font_Data[4] = 0x02;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_G(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x18;
+	Font_Data[1] = 0xA4;
+	Font_Data[2] = 0xA4;
+	Font_Data[3] = 0x9C;
+	Font_Data[4] = 0x78;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_H(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x7F;
+	Font_Data[1] = 0x08;
+	Font_Data[2] = 0x04;
+	Font_Data[3] = 0x04;
+	Font_Data[4] = 0x78;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_I(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x00;
+	Font_Data[1] = 0x44;
+	Font_Data[2] = 0x7D;
+	Font_Data[3] = 0x40;
+	Font_Data[4] = 0x00;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_J(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x20;
+	Font_Data[1] = 0x40;
+	Font_Data[2] = 0x40;
+	Font_Data[3] = 0x3D;
+	Font_Data[4] = 0x00;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_K(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x7F;
+	Font_Data[1] = 0x10;
+	Font_Data[2] = 0x28;
+	Font_Data[3] = 0x44;
+	Font_Data[4] = 0x00;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_L(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x00;
+	Font_Data[1] = 0x41;
+	Font_Data[2] = 0x7F;
+	Font_Data[3] = 0x40;
+	Font_Data[4] = 0x00;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_M(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x7C;
+	Font_Data[1] = 0x04;
+	Font_Data[2] = 0x78;
+	Font_Data[3] = 0x04;
+	Font_Data[4] = 0x78;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_N(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x7C;
+	Font_Data[1] = 0x08;
+	Font_Data[2] = 0x04;
+	Font_Data[3] = 0x04;
+	Font_Data[4] = 0x78;
+}
+
+void Font_Small_O(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x38;
+	Font_Data[1] = 0x44;
+	Font_Data[2] = 0x44;
+	Font_Data[3] = 0x44;
+	Font_Data[4] = 0x38;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_P(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0xFC;
+	Font_Data[1] = 0x18;
+	Font_Data[2] = 0x24;
+	Font_Data[3] = 0x24;
+	Font_Data[4] = 0x18;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_Q(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x18;
+	Font_Data[1] = 0x24;
+	Font_Data[2] = 0x24;
+	Font_Data[3] = 0x18;
+	Font_Data[4] = 0xFC;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_R(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x7C;
+	Font_Data[1] = 0x08;
+	Font_Data[2] = 0x04;
+	Font_Data[3] = 0x04;
+	Font_Data[4] = 0x08;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_S(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x48;
+	Font_Data[1] = 0x54;
+	Font_Data[2] = 0x54;
+	Font_Data[3] = 0x54;
+	Font_Data[4] = 0x24;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Small_T(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x04;
+	Font_Data[1] = 0x04;
+	Font_Data[2] = 0x3F;
+	Font_Data[3] = 0x44;
+	Font_Data[4] = 0x24;
+	Font_Data[5] = 0x00;
+}
