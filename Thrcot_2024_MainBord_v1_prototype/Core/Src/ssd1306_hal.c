@@ -499,7 +499,10 @@ void OLED_AllClear(I2C_HandleTypeDef *hi2c)
 void OLED_Char_Print(uint8_t *message, int x, int y)
 {
 	int MessageSize = 0;
+	int MessageSize1 = 0;
+	int Message_Range = (128 - x) / 6;
 	int Next_page = 0;
+	int Next_Y_page = 0;
 	int Flag = 0;
 	int X_position = 0;
 	int Y_position = 0;
@@ -725,11 +728,19 @@ void OLED_Char_Print(uint8_t *message, int x, int y)
 		}
 
 		if (Flag != 1) {
-			Next_page = MessageSize / 21;
-
-			X_position = x + (MessageSize - 21 * Next_page) * 6;
+			Next_Y_page = MessageSize / Message_Range;
+			Next_page = MessageSize1 / 21;
 			Y_position = y + 7;
-			Y_page = Y_position / 8 + Next_page;
+
+			if (Next_Y_page == 0) {
+				X_position = x + MessageSize * 6;
+				Y_page = Y_position / 8;
+			} else {
+				X_position = (MessageSize1 - 21 * Next_page) * 6;
+				Y_page = Y_position / 8 + Next_page + 1;
+
+				MessageSize1++;
+			}
 
 			if (Y_position % 8 == 7) {
 				for (int i = 1; i <= 6; i++) {
