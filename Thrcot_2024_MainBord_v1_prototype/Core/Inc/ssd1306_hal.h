@@ -8,6 +8,7 @@
 #ifndef INC_SSD1306_HAL_H_
 #define INC_SSD1306_HAL_H_
 
+#include <stdio.h>
 #include <math.h>
 #include "stm32f4xx_hal.h"
 #include "ssd1306_fonts.h"
@@ -35,6 +36,7 @@ void OLED_Circle_Draw(int x_0, int y_0, int radiation);
 void OLED_DataClear(void);
 void OLED_AllClear(I2C_HandleTypeDef *hi2c);
 
-void OLED_Char_Print(uint8_t *message, int x, int y);
+void OLED_Char_Print(char *message, int x, int y);
+void OLED_Int_Print(int val, int x, int y);
 
 #endif /* INC_SSD1306_HAL_H_ */

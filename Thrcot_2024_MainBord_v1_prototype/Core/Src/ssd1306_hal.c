@@ -496,7 +496,7 @@ void OLED_AllClear(I2C_HandleTypeDef *hi2c)
 	}
 }
 
-void OLED_Char_Print(uint8_t *message, int x, int y)
+void OLED_Char_Print(char *message, int x, int y)
 {
 	int MessageSize = 0;
 	int MessageSize1 = 0;
@@ -853,6 +853,47 @@ void OLED_Char_Print(uint8_t *message, int x, int y)
 			case 0x74:
 				Font_Small_T(Message_Data);
 				break;
+
+			case 0x75:
+				Font_Small_U(Message_Data);
+				break;
+
+			case 0x76:
+				Font_Small_V(Message_Data);
+				break;
+
+			case 0x77:
+				Font_Small_W(Message_Data);
+				break;
+
+			case 0x78:
+				Font_Small_X(Message_Data);
+				break;
+
+			case 0x79:
+				Font_Small_Y(Message_Data);
+				break;
+
+			case 0x7A:
+				Font_Small_Z(Message_Data);
+				break;
+
+			case 0x7B:
+				Font_Left_Curly_Bracket(Message_Data);
+				break;
+
+			case 0x7C:
+				Font_Pipe(Message_Data);
+				break;
+
+			case 0x7D:
+				Font_Right_Curly_Bracket(Message_Data);
+				break;
+
+			case 0x7E:
+				Font_Tilde(Message_Data);
+				break;
+
 			default:
 				Flag = 1;
 				break;
@@ -868,7 +909,7 @@ void OLED_Char_Print(uint8_t *message, int x, int y)
 				Y_page = Y_position / 8;
 			} else {
 				X_position = (MessageSize1 - 21 * Next_page) * 6;
-				Y_page = Y_position / 8 + Next_page + 1;
+				Y_page = Y_position / 8 + Next_page;
 
 				MessageSize1++;
 			}
@@ -881,8 +922,8 @@ void OLED_Char_Print(uint8_t *message, int x, int y)
 				uint8_t Y_page2 = Y_page - 1;
 
 				for (int i = 1; i <= 6; i++) {
-					MSB_Data = Message_Data[i-1] >> (Y_position % 8);
-					LSB_Data = Message_Data[i-1] << (8 - Y_position % 8);
+					MSB_Data = Message_Data[i-1] >> (8 - Y_position % 8);
+					LSB_Data = Message_Data[i-1] << (Y_position % 8);
 
 					All_Display_Data[Y_page2][X_position + i] |= LSB_Data;
 					All_Display_Data[Y_page][X_position + i] |= MSB_Data;
@@ -892,4 +933,13 @@ void OLED_Char_Print(uint8_t *message, int x, int y)
 
 		MessageSize++;
 	}
+}
+
+void OLED_Int_Print(int val, int x, int y)
+{
+	char Change_Char[255] = {0};
+
+	sprintf(Change_Char, "%d", val);
+
+	OLED_Char_Print(Change_Char, x, y);
 }

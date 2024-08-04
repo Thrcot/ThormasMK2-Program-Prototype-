@@ -107,4 +107,9 @@ void Font_Small_X(uint8_t *Font_Data);
 void Font_Small_Y(uint8_t *Font_Data);
 void Font_Small_Z(uint8_t *Font_Data);
 
+void Font_Left_Curly_Bracket(uint8_t *Font_Data);
+void Font_Pipe(uint8_t *Font_Data);
+void Font_Right_Curly_Bracket(uint8_t *Font_Data);
+void Font_Tilde(uint8_t *Font_Data);
+
 #endif /* INC_SSD1306_FONTS_H_ */

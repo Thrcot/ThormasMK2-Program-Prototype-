@@ -120,8 +120,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  OLED_Char_Print("!\"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrst", 0, 0);
-	  OLED_Display(&hi2c2);
   }
   /* USER CODE END 3 */
 }
