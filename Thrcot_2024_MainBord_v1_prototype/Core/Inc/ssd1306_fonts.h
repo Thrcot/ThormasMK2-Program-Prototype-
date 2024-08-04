@@ -25,6 +25,7 @@ void Font_Comma(uint8_t *Font_Data);
 void Font_Minus(uint8_t *Font_Data);
 void Font_Period(uint8_t *Font_Data);
 void Font_Slash(uint8_t *Font_Data);
+
 void Font_0(uint8_t *Font_Data);
 void Font_1(uint8_t *Font_Data);
 void Font_2(uint8_t *Font_Data);
@@ -36,6 +37,39 @@ void Font_7(uint8_t *Font_Data);
 void Font_8(uint8_t *Font_Data);
 void Font_9(uint8_t *Font_Data);
 
+void Font_Colon(uint8_t *Font_Data);
+void Font_Semicolon(uint8_t *Font_Data);
+void Font_Smaller(uint8_t *Font_Data);
+void Font_Equal(uint8_t *Font_Data);
+void Font_Bigger(uint8_t *Font_Data);
+void Font_Question(uint8_t *Font_Data);
+void Font_At_Mark(uint8_t *Font_Data);
+
 void Font_Large_A(uint8_t *Font_Data);
+void Font_Large_B(uint8_t *Font_Data);
+void Font_Large_C(uint8_t *Font_Data);
+void Font_Large_D(uint8_t *Font_Data);
+void Font_Large_E(uint8_t *Font_Data);
+void Font_Large_F(uint8_t *Font_Data);
+void Font_Large_G(uint8_t *Font_Data);
+void Font_Large_H(uint8_t *Font_Data);
+void Font_Large_I(uint8_t *Font_Data);
+void Font_Large_J(uint8_t *Font_Data);
+void Font_Large_K(uint8_t *Font_Data);
+void Font_Large_L(uint8_t *Font_Data);
+void Font_Large_M(uint8_t *Font_Data);
+void Font_Large_N(uint8_t *Font_Data);
+void Font_Large_O(uint8_t *Font_Data);
+void Font_Large_P(uint8_t *Font_Data);
+void Font_Large_Q(uint8_t *Font_Data);
+void Font_Large_R(uint8_t *Font_Data);
+void Font_Large_S(uint8_t *Font_Data);
+void Font_Large_T(uint8_t *Font_Data);
+void Font_Large_V(uint8_t *Font_Data);
+void Font_Large_W(uint8_t *Font_Data);
+void Font_Large_X(uint8_t *Font_Data);
+void Font_Large_Y(uint8_t *Font_Data);
+void Font_Large_Z(uint8_t *Font_Data);
+
 
 #endif /* INC_SSD1306_FONTS_H_ */

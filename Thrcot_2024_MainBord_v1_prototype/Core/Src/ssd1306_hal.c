@@ -611,6 +611,114 @@ void OLED_Char_Print(uint8_t *message, int x, int y)
 				Font_9(Message_Data);
 				break;
 
+			case 0x3A:
+				Font_Colon(Message_Data);
+				break;
+
+			case 0x3B:
+				Font_Semicolon(Message_Data);
+				break;
+
+			case 0x3C:
+				Font_Smaller(Message_Data);
+				break;
+
+			case 0x3D:
+				Font_Equal(Message_Data);
+				break;
+
+			case 0x3E:
+				Font_Bigger(Message_Data);
+				break;
+
+			case 0x3F:
+				Font_Question(Message_Data);
+				break;
+
+			case 0x40:
+				Font_At_Mark(Message_Data);
+				break;
+
+			case 0x41:
+				Font_Large_A(Message_Data);
+				break;
+
+			case 0x42:
+				Font_Large_B(Message_Data);
+				break;
+
+			case 0x43:
+				Font_Large_C(Message_Data);
+				break;
+
+			case 0x44:
+				Font_Large_D(Message_Data);
+				break;
+
+			case 0x45:
+				Font_Large_E(Message_Data);
+				break;
+
+			case 0x46:
+				Font_Large_F(Message_Data);
+				break;
+
+			case 0x47:
+				Font_Large_G(Message_Data);
+				break;
+
+			case 0x48:
+				Font_Large_H(Message_Data);
+				break;
+
+			case 0x49:
+				Font_Large_I(Message_Data);
+				break;
+
+			case 0x4A:
+				Font_Large_J(Message_Data);
+				break;
+
+			case 0x4B:
+				Font_Large_K(Message_Data);
+				break;
+
+			case 0x4C:
+				Font_Large_L(Message_Data);
+				break;
+
+			case 0x4D:
+				Font_Large_M(Message_Data);
+				break;
+
+			case 0x4E:
+				Font_Large_N(Message_Data);
+				break;
+
+			case 0x4F:
+				Font_Large_O(Message_Data);
+				break;
+
+			case 0x50:
+				Font_Large_P(Message_Data);
+				break;
+
+			case 0x51:
+				Font_Large_Q(Message_Data);
+				break;
+
+			case 0x52:
+				Font_Large_R(Message_Data);
+				break;
+
+			case 0x53:
+				Font_Large_S(Message_Data);
+				break;
+
+			case 0x54:
+				Font_Large_T(Message_Data);
+				break;
+
 			default:
 				Flag = 1;
 				break;
@@ -632,12 +740,7 @@ void OLED_Char_Print(uint8_t *message, int x, int y)
 
 				for (int i = 1; i <= 6; i++) {
 					MSB_Data = Message_Data[i-1] >> (Y_position % 8);
-
-					for (int j = 0; j < (Y_position % 8); j++) {
-						LSB_Data |= 0x80 >> j;
-					}
-
-					LSB_Data = Message_Data[i-1] & LSB_Data;
+					LSB_Data = Message_Data[i-1] << (8 - Y_position % 8);
 
 					All_Display_Data[Y_page2][X_position + i] |= LSB_Data;
 					All_Display_Data[Y_page][X_position + i] |= MSB_Data;
