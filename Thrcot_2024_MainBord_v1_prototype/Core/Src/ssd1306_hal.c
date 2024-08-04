@@ -514,6 +514,10 @@ void OLED_Char_Print(uint8_t *message, int x, int y)
 
 	while (message[MessageSize] != 0x00) {
 		switch (message[MessageSize]) {
+			case 0x20:
+				Font_Space(Message_Data);
+				break;
+
 			case 0x21:
 				Font_Exclamation(Message_Data);
 				break;
@@ -720,6 +724,54 @@ void OLED_Char_Print(uint8_t *message, int x, int y)
 
 			case 0x54:
 				Font_Large_T(Message_Data);
+				break;
+
+			case 0x55:
+				Font_Large_U(Message_Data);
+				break;
+
+			case 0x56:
+				Font_Large_V(Message_Data);
+				break;
+
+			case 0x57:
+				Font_Large_W(Message_Data);
+				break;
+
+			case 0x58:
+				Font_Large_X(Message_Data);
+				break;
+
+			case 0x59:
+				Font_Large_Y(Message_Data);
+				break;
+
+			case 0x5A:
+				Font_Large_Z(Message_Data);
+				break;
+
+			case 0x5B:
+				Font_Left_Square_Bracket(Message_Data);
+				break;
+
+			case 0x5C:
+				Font_Back_Slash(Message_Data);
+				break;
+
+			case 0x5D:
+				Font_Right_Square_Bracket(Message_Data);
+				break;
+
+			case 0x5E:
+				Font_Caret(Message_Data);
+				break;
+
+			case 0x5F:
+				Font_Under_Bar(Message_Data);
+				break;
+
+			case 0x60:
+				Font_Back_Quote(Message_Data);
 				break;
 
 			default:

@@ -7,6 +7,16 @@
 
 #include "ssd1306_fonts.h"
 
+void Font_Space(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x00;
+	Font_Data[1] = 0x00;
+	Font_Data[2] = 0x00;
+	Font_Data[3] = 0x00;
+	Font_Data[4] = 0x00;
+	Font_Data[5] = 0x00;
+}
+
 void Font_Exclamation(uint8_t *Font_Data)
 {
 	Font_Data[0] = 0x00;
@@ -523,5 +533,125 @@ void Font_Large_T(uint8_t *Font_Data)
 	Font_Data[2] = 0x7F;
 	Font_Data[3] = 0x01;
 	Font_Data[4] = 0x03;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Large_U(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x3F;
+	Font_Data[1] = 0x40;
+	Font_Data[2] = 0x40;
+	Font_Data[3] = 0x40;
+	Font_Data[4] = 0x3F;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Large_V(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x1F;
+	Font_Data[1] = 0x20;
+	Font_Data[2] = 0x40;
+	Font_Data[3] = 0x20;
+	Font_Data[4] = 0x1F;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Large_W(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x3F;
+	Font_Data[1] = 0x40;
+	Font_Data[2] = 0x38;
+	Font_Data[3] = 0x40;
+	Font_Data[4] = 0x3F;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Large_X(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x63;
+	Font_Data[1] = 0x14;
+	Font_Data[2] = 0x08;
+	Font_Data[3] = 0x14;
+	Font_Data[4] = 0x63;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Large_Y(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x03;
+	Font_Data[1] = 0x04;
+	Font_Data[2] = 0x78;
+	Font_Data[3] = 0x04;
+	Font_Data[4] = 0x03;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Large_Z(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x61;
+	Font_Data[1] = 0x59;
+	Font_Data[2] = 0x49;
+	Font_Data[3] = 0x4D;
+	Font_Data[4] = 0x43;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Left_Square_Bracket(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x00;
+	Font_Data[1] = 0x7F;
+	Font_Data[2] = 0x41;
+	Font_Data[3] = 0x41;
+	Font_Data[4] = 0x41;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Back_Slash(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x02;
+	Font_Data[1] = 0x04;
+	Font_Data[2] = 0x08;
+	Font_Data[3] = 0x10;
+	Font_Data[4] = 0x20;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Right_Square_Bracket(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x00;
+	Font_Data[1] = 0x41;
+	Font_Data[2] = 0x41;
+	Font_Data[3] = 0x41;
+	Font_Data[4] = 0x7F;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Caret(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x04;
+	Font_Data[1] = 0x02;
+	Font_Data[2] = 0x01;
+	Font_Data[3] = 0x02;
+	Font_Data[4] = 0x04;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Under_Bar(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x40;
+	Font_Data[1] = 0x40;
+	Font_Data[2] = 0x40;
+	Font_Data[3] = 0x40;
+	Font_Data[4] = 0x40;
+	Font_Data[5] = 0x00;
+}
+
+void Font_Back_Quote(uint8_t *Font_Data)
+{
+	Font_Data[0] = 0x00;
+	Font_Data[1] = 0x03;
+	Font_Data[2] = 0x07;
+	Font_Data[3] = 0x08;
+	Font_Data[4] = 0x00;
 	Font_Data[5] = 0x00;
 }

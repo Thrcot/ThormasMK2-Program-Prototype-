@@ -10,6 +10,7 @@
 
 #include "stm32f4xx_hal.h"
 
+void Font_Space(uint8_t *Font_Data);
 void Font_Exclamation(uint8_t *Font_Data);
 void Font_Double_Quotation(uint8_t *Font_Data);
 void Font_Sharp(uint8_t *Font_Data);
@@ -65,11 +66,45 @@ void Font_Large_Q(uint8_t *Font_Data);
 void Font_Large_R(uint8_t *Font_Data);
 void Font_Large_S(uint8_t *Font_Data);
 void Font_Large_T(uint8_t *Font_Data);
+void Font_Large_U(uint8_t *Font_Data);
 void Font_Large_V(uint8_t *Font_Data);
 void Font_Large_W(uint8_t *Font_Data);
 void Font_Large_X(uint8_t *Font_Data);
 void Font_Large_Y(uint8_t *Font_Data);
 void Font_Large_Z(uint8_t *Font_Data);
 
+void Font_Left_Square_Bracket(uint8_t *Font_Data);
+void Font_Back_Slash(uint8_t *Font_Data);
+void Font_Right_Square_Bracket(uint8_t *Font_Data);
+void Font_Caret(uint8_t *Font_Data);
+void Font_Under_Bar(uint8_t *Font_Data);
+void Font_Back_Quote(uint8_t *Font_Data);
+
+void Font_Small_A(uint8_t *Font_Data);
+void Font_Small_B(uint8_t *Font_Data);
+void Font_Small_C(uint8_t *Font_Data);
+void Font_Small_D(uint8_t *Font_Data);
+void Font_Small_E(uint8_t *Font_Data);
+void Font_Small_F(uint8_t *Font_Data);
+void Font_Small_G(uint8_t *Font_Data);
+void Font_Small_H(uint8_t *Font_Data);
+void Font_Small_I(uint8_t *Font_Data);
+void Font_Small_J(uint8_t *Font_Data);
+void Font_Small_K(uint8_t *Font_Data);
+void Font_Small_L(uint8_t *Font_Data);
+void Font_Small_M(uint8_t *Font_Data);
+void Font_Small_N(uint8_t *Font_Data);
+void Font_Small_O(uint8_t *Font_Data);
+void Font_Small_P(uint8_t *Font_Data);
+void Font_Small_Q(uint8_t *Font_Data);
+void Font_Small_R(uint8_t *Font_Data);
+void Font_Small_S(uint8_t *Font_Data);
+void Font_Small_T(uint8_t *Font_Data);
+void Font_Small_U(uint8_t *Font_Data);
+void Font_Small_V(uint8_t *Font_Data);
+void Font_Small_W(uint8_t *Font_Data);
+void Font_Small_X(uint8_t *Font_Data);
+void Font_Small_Y(uint8_t *Font_Data);
+void Font_Small_Z(uint8_t *Font_Data);
 
 #endif /* INC_SSD1306_FONTS_H_ */
