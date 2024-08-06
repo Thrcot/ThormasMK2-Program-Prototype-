@@ -38,5 +38,6 @@ void OLED_AllClear(I2C_HandleTypeDef *hi2c);
 
 void OLED_Char_Print(char *message, int x, int y);
 void OLED_Int_Print(int val, int x, int y);
+void OLED_Double_Print(double val, int x, int y);
 
 #endif /* INC_SSD1306_HAL_H_ */

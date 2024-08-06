@@ -160,7 +160,7 @@ int main(void)
 	  stop = DWT->CYCCNT;
 	  CycleCount = stop - start;
 
-	  OLED_Int_Print(CycleCount / 180000, 0, 0);
+	  OLED_Double_Print(CycleCount / 180000000.0, 0, 0);
 	  OLED_Display(&hi2c2);
 	  HAL_Delay(1000);
 	  OLED_DataClear();

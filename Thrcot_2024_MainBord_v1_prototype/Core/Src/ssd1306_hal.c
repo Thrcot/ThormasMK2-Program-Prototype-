@@ -943,3 +943,12 @@ void OLED_Int_Print(int val, int x, int y)
 
 	OLED_Char_Print(Change_Char, x, y);
 }
+
+void OLED_Double_Print(double val, int x, int y)
+{
+	char Change_Char[255] = {0};
+
+	sprintf(Change_Char, "%.3f", val);
+
+	OLED_Char_Print(Change_Char, x, y);
+}
