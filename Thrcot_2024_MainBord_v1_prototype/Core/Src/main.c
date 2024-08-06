@@ -134,7 +134,13 @@ int main(void)
   volatile uint32_t stop= 0;
   volatile uint32_t CycleCount = 0;
 
+  int Error_Data = 0;
+
   DFP_Init(&huart6);
+
+  do {
+	  Error_Data = BMX055_Init(&hi2c2);
+  } while (Error_Data != 0);
 
   OLED_Init(&hi2c2, OLED_Init_Data, sizeof(OLED_Init_Data));
 
@@ -153,17 +159,14 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  start = DWT->CYCCNT;
+	  //start = DWT->CYCCNT;
 
-	  HAL_Delay(2000);
-
-	  stop = DWT->CYCCNT;
-	  CycleCount = stop - start;
-
-	  OLED_Double_Print(CycleCount / 180000000.0, 0, 0);
+	  OLED_Int_Print(Error_Data, 0, 0);
 	  OLED_Display(&hi2c2);
-	  HAL_Delay(1000);
 	  OLED_DataClear();
+
+	  //stop = DWT->CYCCNT;
+	  //CycleCount = stop - start;
   }
   /* USER CODE END 3 */
 }

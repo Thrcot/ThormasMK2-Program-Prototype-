@@ -14,4 +14,8 @@
 #define GYRO_ADR (0x69 << 1)
 #define MAG_ADR (0x13 << 1)
 
+extern I2C_HandleTypeDef *IMU_i2c;
+
+int BMX055_Init(I2C_HandleTypeDef *hi2c);
+
 #endif /* INC_BMX055_HAL_H_ */
