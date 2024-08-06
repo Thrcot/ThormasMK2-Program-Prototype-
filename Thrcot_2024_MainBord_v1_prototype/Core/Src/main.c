@@ -149,7 +149,7 @@ int main(void)
 
   OLED_AllClear(&hi2c2);
 
-  //Audio_Setting();
+  Audio_Setting();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -787,8 +787,10 @@ void Audio_Setting(void)
 		}
 
 		OLED_DataClear();
-		OLED_Line_Display(19, 45, 108, 45);
-		OLED_Circle_Draw(volume * 3 + 19, 45, 5);
+		OLED_Line_Display(19, 20, 108, 20);
+		OLED_Circle_Draw(volume * 3 + 19, 20, 5);
+		OLED_Char_Print("volume : ", 0, 0);
+		OLED_Int_Print(volume, 54, 0);
 		OLED_Display(&hi2c2);
 
 		preSW2 = SW2;
