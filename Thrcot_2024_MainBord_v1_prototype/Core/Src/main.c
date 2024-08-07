@@ -135,6 +135,7 @@ int main(void)
   volatile uint32_t CycleCount = 0;
 
   int Error_Data = 0;
+  double duration = 0.0;
 
   DFP_Init(&huart6);
 
@@ -149,7 +150,7 @@ int main(void)
 
   OLED_AllClear(&hi2c2);
 
-  Audio_Setting();
+  // Audio_Setting();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -159,14 +160,11 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  //start = DWT->CYCCNT;
+	  start = DWT->CYCCNT;
 
-	  OLED_Int_Print(Error_Data, 0, 0);
-	  OLED_Display(&hi2c2);
-	  OLED_DataClear();
-
-	  //stop = DWT->CYCCNT;
-	  //CycleCount = stop - start;
+	  stop = DWT->CYCCNT;
+	  CycleCount = stop - start;
+	  duration = CycleCount / 180000000.0;
   }
   /* USER CODE END 3 */
 }
