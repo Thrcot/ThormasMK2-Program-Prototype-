@@ -18,8 +18,16 @@ extern I2C_HandleTypeDef *IMU_i2c;
 
 int BMX055_Init(I2C_HandleTypeDef *hi2c);
 
+double Accel_Get_X(void);
+double Accel_Get_Y(void);
+double Accel_Get_Z(void);
+
 double Gyro_Get_X(void);
 double Gyro_Get_Y(void);
 double Gyro_Get_Z(void);
+
+double Mag_Get_X(void);
+double Mag_Get_Y(void);
+double Mag_Get_Z(void);
 
 #endif /* INC_BMX055_HAL_H_ */

@@ -47,6 +47,84 @@ int BMX055_Init(I2C_HandleTypeDef *hi2c)
 	return Error_Message;
 }
 
+double Accel_Get_X(void)
+{
+	uint8_t Data_buf[10];
+	uint8_t Request_Data_buf[] = {0x02};
+	int LSB_Data = 0;
+	int MSB_Data = 0;
+	double Accel_X;
+
+	HAL_I2C_Master_Transmit(IMU_i2c, ACCEL_ADR, Request_Data_buf, sizeof(Request_Data_buf), 1000);
+	HAL_I2C_Master_Receive(IMU_i2c, ACCEL_ADR, Data_buf, 1, 1000);
+	LSB_Data = Data_buf[0];
+
+	Request_Data_buf[0] = 0x03;
+	HAL_I2C_Master_Transmit(IMU_i2c, ACCEL_ADR, Request_Data_buf, sizeof(Request_Data_buf), 1000);
+	HAL_I2C_Master_Receive(IMU_i2c, ACCEL_ADR, Data_buf, 1, 1000);
+	MSB_Data = Data_buf[0];
+
+	Accel_X = (MSB_Data << 4) | ((LSB_Data & 0xF0) >> 4);
+	if (Accel_X > 2047) {
+		Accel_X -= 4096;
+	}
+	Accel_X = Accel_X * 0.000976;
+
+	return Accel_X;
+}
+
+double Accel_Get_Y(void)
+{
+	uint8_t Data_buf[10];
+	uint8_t Request_Data_buf[] = {0x04};
+	int LSB_Data = 0;
+	int MSB_Data = 0;
+	double Accel_Y;
+
+	HAL_I2C_Master_Transmit(IMU_i2c, ACCEL_ADR, Request_Data_buf, sizeof(Request_Data_buf), 1000);
+	HAL_I2C_Master_Receive(IMU_i2c, ACCEL_ADR, Data_buf, 1, 1000);
+	LSB_Data = Data_buf[0];
+
+	Request_Data_buf[0] = 0x05;
+	HAL_I2C_Master_Transmit(IMU_i2c, ACCEL_ADR, Request_Data_buf, sizeof(Request_Data_buf), 1000);
+	HAL_I2C_Master_Receive(IMU_i2c, ACCEL_ADR, Data_buf, 1, 1000);
+	MSB_Data = Data_buf[0];
+
+	Accel_Y = (MSB_Data << 4) | ((LSB_Data & 0xF0) >> 4);
+	if (Accel_Y > 2047) {
+		Accel_Y -= 4096;
+	}
+	Accel_Y = Accel_Y * 0.000976;
+
+	return Accel_Y;
+}
+
+double Accel_Get_Z(void)
+{
+	uint8_t Data_buf[10];
+	uint8_t Request_Data_buf[] = {0x06};
+	int LSB_Data = 0;
+	int MSB_Data = 0;
+	double Accel_Z;
+
+	HAL_I2C_Master_Transmit(IMU_i2c, ACCEL_ADR, Request_Data_buf, sizeof(Request_Data_buf), 1000);
+	HAL_I2C_Master_Receive(IMU_i2c, ACCEL_ADR, Data_buf, 1, 1000);
+	LSB_Data = Data_buf[0];
+
+	Request_Data_buf[0] = 0x07;
+	HAL_I2C_Master_Transmit(IMU_i2c, ACCEL_ADR, Request_Data_buf, sizeof(Request_Data_buf), 1000);
+	HAL_I2C_Master_Receive(IMU_i2c, ACCEL_ADR, Data_buf, 1, 1000);
+	MSB_Data = Data_buf[0];
+
+	Accel_Z = (MSB_Data << 4) | ((LSB_Data & 0xF0) >> 4);
+	if (Accel_Z > 2047) {
+		Accel_Z -= 4096;
+	}
+	Accel_Z = Accel_Z * 0.000976;
+
+	return Accel_Z;
+}
+
 double Gyro_Get_X(void)
 {
 	uint8_t Data_buf[10];
@@ -64,7 +142,7 @@ double Gyro_Get_X(void)
 	HAL_I2C_Master_Receive(IMU_i2c, GYRO_ADR, Data_buf, 1, 1000);
 	MSB_Data = Data_buf[0];
 
-	Gyro_X = (MSB_Data * 256) + LSB_Data;
+	Gyro_X = (MSB_Data << 8) + LSB_Data;
 	if (Gyro_X > 32767.0) {
 		Gyro_X -= 65536.0;
 	}
@@ -90,7 +168,7 @@ double Gyro_Get_Y(void)
 	HAL_I2C_Master_Receive(IMU_i2c, GYRO_ADR, Data_buf, 1, 1000);
 	MSB_Data = Data_buf[0];
 
-	Gyro_Y = (MSB_Data * 256) + LSB_Data;
+	Gyro_Y = (MSB_Data << 8) + LSB_Data;
 	if (Gyro_Y > 32767.0) {
 		Gyro_Y -= 65536.0;
 	}
@@ -116,7 +194,7 @@ double Gyro_Get_Z(void)
 	HAL_I2C_Master_Receive(IMU_i2c, GYRO_ADR, Data_buf, 1, 1000);
 	MSB_Data = Data_buf[0];
 
-	Gyro_Z = (MSB_Data * 256) + LSB_Data;
+	Gyro_Z = (MSB_Data << 8) + LSB_Data;
 	if (Gyro_Z > 32767.0) {
 		Gyro_Z -= 65536.0;
 	}
