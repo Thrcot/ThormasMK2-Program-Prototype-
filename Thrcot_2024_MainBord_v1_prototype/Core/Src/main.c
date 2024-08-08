@@ -137,11 +137,17 @@ int main(void)
   int Error_Data = 0;
   double duration = 0.0;
 
+  double gz_offset;
+  double gz = 0;
+  double angle = 0;
+
   DFP_Init(&huart6);
 
   do {
 	  Error_Data = BMX055_Init(&hi2c2);
   } while (Error_Data != 0);
+
+  gz_offset = Gyro_Offset_Z(1000);
 
   OLED_Init(&hi2c2, OLED_Init_Data, sizeof(OLED_Init_Data));
 
@@ -161,6 +167,13 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  start = DWT->CYCCNT;
+
+	  gz = Gyro_Get_Z() - gz_offset;
+	  angle += gz * duration;
+
+	  OLED_Double_Print(angle, 0, 0);
+	  OLED_Display(&hi2c2);
+	  OLED_DataClear();
 
 	  stop = DWT->CYCCNT;
 	  CycleCount = stop - start;
