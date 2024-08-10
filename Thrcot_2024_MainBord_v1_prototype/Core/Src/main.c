@@ -137,14 +137,14 @@ int main(void)
   int Error_Data = 0;
   double duration = 0.0;
 
-  double gz_offset;
-  double gz = 0;
+  int gz_offset;
+  long gz = 0;
   double angle = 0;
 
   DFP_Init(&huart6);
 
   do {
-	  Error_Data = BMX055_Init(&hi2c2);
+	  Error_Data = BMX055_Init(&hi2c2, 2, 500);
   } while (Error_Data != 0);
 
   gz_offset = Gyro_Offset_Z(1000);
@@ -168,8 +168,8 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  start = DWT->CYCCNT;
 
-	  gz = Gyro_Get_Z() - gz_offset;
-	  angle += gz * duration;
+	  gz += Gyro_Get_Z() - gz_offset;
+	  angle = gz * duration * (500.0 / 32767.0);
 
 	  OLED_Double_Print(angle, 0, 0);
 	  OLED_Display(&hi2c2);

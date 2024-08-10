@@ -17,21 +17,16 @@
 
 extern I2C_HandleTypeDef *IMU_i2c;
 
-extern double deltat, GyroError, beta;
-extern double ax, ay, az;
-extern double gx, gy, gz;
-extern double SEq_1, SEq_2, SEq_3, SEq_4;
+int BMX055_Init(I2C_HandleTypeDef *hi2c, int AccelRange, int GyroRange);
 
-int BMX055_Init(I2C_HandleTypeDef *hi2c);
+int Accel_Get_X(void);
+int Accel_Get_Y(void);
+int Accel_Get_Z(void);
 
-double Accel_Get_X(void);
-double Accel_Get_Y(void);
-double Accel_Get_Z(void);
+int Gyro_Get_X(void);
+int Gyro_Get_Y(void);
+int Gyro_Get_Z(void);
 
-double Gyro_Get_X(void);
-double Gyro_Get_Y(void);
-double Gyro_Get_Z(void);
-
-double Gyro_Offset_Z(int tryCount);
+int Gyro_Offset_Z(int tryCount);
 
 #endif /* INC_BMX055_HAL_H_ */
