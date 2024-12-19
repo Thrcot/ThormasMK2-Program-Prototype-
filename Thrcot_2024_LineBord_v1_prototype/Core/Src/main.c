@@ -43,7 +43,9 @@
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-
+uint8_t rx_buf[10];
+uint8_t return_id[2] = {0xF3, 0x03};
+uint8_t return_data[2] = {0x00, 0x00};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -100,9 +102,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  int state = HAL_GPIO_ReadPin(LS2_GPIO_Port, LS2_Pin);
+	  uint8_t Line1 = HAL_GPIO_ReadPin(LS1_GPIO_Port, LS1_Pin);
+	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, Line1);
 
-	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, state);
+	  HAL_UART_Receive_IT(&huart1, rx_buf, 2);
   }
   /* USER CODE END 3 */
 }
@@ -235,7 +238,16 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	//HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 
+	if (rx_buf[0] == 0xF3 && rx_buf[1] == 0x03) {
+		HAL_UART_Transmit(&huart1, return_id, 2, 1000);
+	} else if (rx_buf[0] == 0xF0 && rx_buf[1] == 0x33) {
+		HAL_UART_Transmit(&huart1, return_data, 2, 1000);
+	}
+}
 /* USER CODE END 4 */
 
 /**

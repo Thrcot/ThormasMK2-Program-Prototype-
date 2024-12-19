@@ -9,6 +9,9 @@
 
 I2C_HandleTypeDef *IMU_i2c;
 
+int Accel_Change;
+int Gyro_Change;
+
 int BMX055_Init(I2C_HandleTypeDef *hi2c, int AccelRange, int GyroRange)
 {
 	IMU_i2c = hi2c;
@@ -25,44 +28,56 @@ int BMX055_Init(I2C_HandleTypeDef *hi2c, int AccelRange, int GyroRange)
 	switch (AccelRange) {
 		case 2:
 			Accel_Init_buf[1] = 0x03;
+			Accel_Change = 2.0;
 			break;
 
 		case 4:
 			Accel_Init_buf[1] = 0x05;
+			Accel_Change = 4.0;
 			break;
 
 		case 8:
 			Accel_Init_buf[1] = 0x08;
+			Accel_Change = 8.0;
 			break;
 
 		case 16:
 			Accel_Init_buf[1] = 0x0C;
+			Accel_Change = 16.0;
 			break;
 		default:
+			Accel_Change = 2.0;
 			break;
 	}
 
 	switch (GyroRange) {
 		case 125:
 			Gyro_Init_buf[1] = 0x04;
+			Gyro_Change = 125.0;
 			break;
 
 		case 250:
 			Gyro_Init_buf[1] = 0x03;
+			Gyro_Change = 250.0;
 			break;
 
 		case 500:
 			Gyro_Init_buf[1] = 0x02;
+			Gyro_Change = 500.0;
 			break;
 
 		case 1000:
 			Gyro_Init_buf[1] = 0x01;
+			Gyro_Change = 1000.0;
 			break;
 
 		case 2000:
 			Gyro_Init_buf[1] = 0x00;
+			Gyro_Change = 2000.0;
+			break;
 
 		default:
+			Gyro_Change = 125.0;
 			break;
 	}
 
@@ -239,6 +254,17 @@ int Gyro_Get_Z(void)
 	}
 
 	return Gyro_Z;
+}
+
+double Get_Yaw(int offset, double duration)
+{
+	static unsigned long gz = 0;
+	double angle = 0.0;
+
+	gz += Gyro_Get_Z() - offset;
+	angle = gz * duration * (Gyro_Change / 32767.0) * -1.0;
+
+	return angle;
 }
 
 int Gyro_Offset_Z(int tryCount)

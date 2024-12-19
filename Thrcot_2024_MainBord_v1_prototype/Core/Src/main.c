@@ -80,6 +80,15 @@ int SW3_keep_state(void);
 int StartSW_keep_state(void);
 
 void Audio_Setting(void);
+
+void Motor_Init(void);
+
+void M1_control(int speed);
+void M2_control(int speed);
+void M3_control(int speed);
+void M4_control(int speed);
+
+void Stright_control(double angle, int speed);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -127,18 +136,17 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+  CoreDebug -> DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT -> CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 
   volatile uint32_t start = 0;
-  volatile uint32_t stop= 0;
-  volatile uint32_t CycleCount = 0;
+  volatile uint32_t stop = 0;
 
   int Error_Data = 0;
   double duration = 0.0;
 
-  int gz_offset;
-  long gz = 0;
+  int gz = 0;
+  int gz_offset = 0;
   double angle = 0;
 
   DFP_Init(&huart6);
@@ -156,7 +164,10 @@ int main(void)
 
   OLED_AllClear(&hi2c2);
 
-  // Audio_Setting();
+  Motor_Init();
+
+  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 0);
+  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 0);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -166,18 +177,32 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  start = DWT->CYCCNT;
+	  /*start = DWT -> CYCCNT;
 
 	  gz += Gyro_Get_Z() - gz_offset;
 	  angle = gz * duration * (500.0 / 32767.0);
 
-	  OLED_Double_Print(angle, 0, 0);
-	  OLED_Display(&hi2c2);
-	  OLED_DataClear();
+ 	  OLED_Double_Print(angle, 0, 0);
+ 	  OLED_Display(&hi2c2);
+ 	  OLED_DataClear();
 
-	  stop = DWT->CYCCNT;
-	  CycleCount = stop - start;
-	  duration = CycleCount / 180000000.0;
+ 	  stop = DWT -> CYCCNT;
+ 	  duration = (double)(stop - start) / 180000000;*/
+
+	  uint8_t tx_data[2] = {0xF3, 0x03};
+	  uint8_t rx_buf[2] = {0};
+
+	  OLED_AllClear(&hi2c2);
+
+	  HAL_UART_Transmit(&huart2, tx_data, 2, 1000);
+	  if (HAL_UART_Receive(&huart2, rx_buf, 2, 1000) == HAL_OK) {
+		  OLED_Int_Print(rx_buf[0], 0, 0);
+		  OLED_Int_Print(rx_buf[1], 0, 10);
+	  } else {
+		  OLED_Char_Print("Not return.", 0, 0);
+	  }
+
+	  OLED_Display(&hi2c2);
   }
   /* USER CODE END 3 */
 }
@@ -812,6 +837,103 @@ void Audio_Setting(void)
 
 	DFP_Volume(volume);
 	DFP_Play(1);
+}
+
+void Motor_Init(void)
+{
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
+
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_3);
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4);
+
+	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_2);
+}
+
+void M1_control(int speed)
+{
+	if (speed == 0) {
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+	} else if (speed > 0 && speed < 1024) {
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, speed);
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
+	} else if (speed < 0 && speed > -1024) {
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, -speed);
+	} else {
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 1023);
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 1023);
+	}
+}
+
+void M4_control(int speed)
+{
+	if (speed == 0) {
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 0);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, 0);
+	} else if (speed > 0 && speed < 1024) {
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, speed);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, 0);
+	} else if (speed < 0 && speed > -1024) {
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 0);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, -speed);
+	} else {
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 1023);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, 1023);
+	}
+}
+
+void M3_control(int speed)
+{
+	if (speed == 0) {
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
+	} else if (speed > 0 && speed < 1024) {
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, speed);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
+	} else if (speed < 0 && speed > -1024) {
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, -speed);
+	} else {
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 1023);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 1023);
+	}
+}
+
+void M2_control(int speed)
+{
+	if (speed == 0) {
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+	} else if (speed > 0 && speed < 1024) {
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, speed);
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+	} else if (speed < 0 && speed > -1024) {
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, -speed);
+	} else {
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 1023);
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 1023);
+	}
+}
+
+void Stright_control(double angle, int speed)
+{
+	int M1_speed = sin((angle - 45) * PI / 180) * speed;
+	int M2_speed = sin((angle - 135) * PI / 180) * speed;
+	int M3_speed = sin((angle - 225) * PI / 180) * speed;
+	int M4_speed = sin((angle - 315) * PI / 180) * speed;
+
+	M1_control(M1_speed);
+	M2_control(M2_speed);
+	M3_control(M3_speed);
+	M4_control(M4_speed);
 }
 /* USER CODE END 4 */
 
