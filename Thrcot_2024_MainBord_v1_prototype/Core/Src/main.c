@@ -29,7 +29,18 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef enum {
+	STANDBY_MODE,
+	DEBUG_MODE,
+	GAME_MODE
+} Robot_State_t;
 
+typedef enum {
+	LINE_CHECK,
+	BALL_CHECK,
+	BMX_CHECK,
+	MOTOR_CHECK,
+} Debug_Select_t;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -43,6 +54,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
 
 I2C_HandleTypeDef hi2c2;
 
@@ -57,12 +69,22 @@ UART_HandleTypeDef huart3;
 UART_HandleTypeDef huart6;
 
 /* USER CODE BEGIN PV */
+double gz_offset = 0.0;
 
+uint8_t DFPlayer_enable = 0;
+uint8_t Camera_enable = 0;
+uint8_t WiFi_enable = 0;
+
+uint8_t check_line[2] = {0xF3, 0x03};
+uint8_t request_line[2] = {0xF0, 0x33};
+
+uint16_t Ball_data[8] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_USART6_UART_Init(void);
 static void MX_ADC1_Init(void);
@@ -74,20 +96,27 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_USART3_UART_Init(void);
 /* USER CODE BEGIN PFP */
+/*Init function*/
+void Thrcot_Init(void);
+
+/*Debug function*/
+void Debug_Mode(Debug_Select_t debug_kind);
+uint8_t Line_Conenct_Test(void);
+/*switch control function*/
 int SW1_keep_state(void);
 int SW2_keep_state(void);
 int SW3_keep_state(void);
 int StartSW_keep_state(void);
 
-void Audio_Setting(void);
+/*ADC and Ball sensor function*/
 
+
+/*motor control function*/
 void Motor_Init(void);
-
 void M1_control(int speed);
 void M2_control(int speed);
 void M3_control(int speed);
 void M4_control(int speed);
-
 void Stright_control(double angle, int speed);
 /* USER CODE END PFP */
 
@@ -125,6 +154,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_I2C2_Init();
   MX_USART6_UART_Init();
   MX_ADC1_Init();
@@ -142,32 +172,12 @@ int main(void)
   volatile uint32_t start = 0;
   volatile uint32_t stop = 0;
 
-  int Error_Data = 0;
   double duration = 0.0;
 
   int gz = 0;
-  int gz_offset = 0;
   double angle = 0;
 
-  DFP_Init(&huart6);
-
-  do {
-	  Error_Data = BMX055_Init(&hi2c2, 2, 500);
-  } while (Error_Data != 0);
-
-  gz_offset = Gyro_Offset_Z(1000);
-
-  OLED_Init(&hi2c2, OLED_Init_Data, sizeof(OLED_Init_Data));
-
-  OLED_Thrcot_Large_Logo_Display(&hi2c2);
-  HAL_Delay(3000);
-
-  OLED_AllClear(&hi2c2);
-
-  Motor_Init();
-
-  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 0);
-  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 0);
+  Thrcot_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -177,32 +187,102 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  /*start = DWT -> CYCCNT;
+	  static Robot_State_t robot_state = STANDBY_MODE;
+	  uint8_t sw1_state, sw2_state, sw3_state, start_sw_state;
 
-	  gz += Gyro_Get_Z() - gz_offset;
-	  angle = gz * duration * (500.0 / 32767.0);
+	  switch (robot_state) {
+		case STANDBY_MODE:
+			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
+			HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 0);
 
- 	  OLED_Double_Print(angle, 0, 0);
- 	  OLED_Display(&hi2c2);
- 	  OLED_DataClear();
+			OLED_DataClear();
+			OLED_Char_Print("Stand-by Mode...", 0, 0);
+			OLED_Char_Print("Debug Mode : SW2", 0, 12);
+			OLED_Char_Print("Game Mode : SW3", 0, 20);
+			OLED_Display(&hi2c2);
 
- 	  stop = DWT -> CYCCNT;
- 	  duration = (double)(stop - start) / 180000000;*/
+			while (1) {
+				if (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0) {
+					robot_state = DEBUG_MODE;
+					break;
+				} else if (HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin) == 0){
+					robot_state = GAME_MODE;
+					break;
+				}
+			}
+			break;
 
-	  uint8_t tx_data[2] = {0xF3, 0x03};
-	  uint8_t rx_buf[2] = {0};
+		case DEBUG_MODE:
+			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 0);
+			HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 1);
 
-	  OLED_AllClear(&hi2c2);
+			OLED_AllClear(&hi2c2);
+			OLED_Char_Print("Debug Mode...", 0, 0);
+			OLED_Char_Print("SW1 : Stand-by Mode", 0, 8);
+			OLED_Display(&hi2c2);
+			HAL_Delay(1500);
 
-	  HAL_UART_Transmit(&huart2, tx_data, 2, 1000);
-	  if (HAL_UART_Receive(&huart2, rx_buf, 2, 1000) == HAL_OK) {
-		  OLED_Int_Print(rx_buf[0], 0, 0);
-		  OLED_Int_Print(rx_buf[1], 0, 10);
-	  } else {
-		  OLED_Char_Print("Not return.", 0, 0);
-	  }
+			while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 1) {
+				static Debug_Select_t debug = 0;
+				sw2_state = HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin);
+				start_sw_state = HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin);
 
-	  OLED_Display(&hi2c2);
+				OLED_DataClear();
+				OLED_Char_Print("Select to SW2", 0, 0);
+				OLED_Char_Print("Decide to StartSW", 0, 8);
+				OLED_Char_Print("Stand-by to SW1", 0, 16);
+				OLED_Char_Print(" Line check", 0, 24);
+				OLED_Char_Print(" Ball check", 0, 32);
+				OLED_Char_Print(" BMX check", 0, 40);
+				OLED_Char_Print(" Motor check", 0, 48);
+				OLED_Char_Print(">", 0, debug * 8 + 24);
+				OLED_Display(&hi2c2);
+
+				if (sw2_state == 0) {
+					while (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0);
+					debug = (debug == MOTOR_CHECK) ? LINE_CHECK : debug + 1;
+				}
+
+				if (start_sw_state == 0) {
+					while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 0);
+					Debug_Mode(debug);
+				}
+			}
+
+			robot_state = STANDBY_MODE;
+			break;
+
+		case GAME_MODE:
+			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
+			HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 1);
+
+			OLED_DataClear();
+			OLED_Char_Print("Game Mode...", 0, 0);
+			OLED_Char_Print("Please press StartSW", 0, 8);
+			OLED_Display(&hi2c2);
+
+			while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 1);
+			while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 0);
+
+			OLED_DataClear();
+			OLED_Char_Print("Running...", 0, 0);
+			OLED_Display(&hi2c2);
+
+			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 0);
+			HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 0);
+
+			while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin)) {
+
+			}
+
+			while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 0);
+			robot_state = STANDBY_MODE;
+
+			break;
+
+		default:
+			break;
+	}
   }
   /* USER CODE END 3 */
 }
@@ -283,14 +363,14 @@ static void MX_ADC1_Init(void)
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc1.Init.ScanConvMode = DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.ScanConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 1;
-  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.NbrOfConversion = 8;
+  hadc1.Init.DMAContinuousRequests = ENABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
@@ -299,9 +379,72 @@ static void MX_ADC1_Init(void)
 
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
-  sConfig.Channel = ADC_CHANNEL_4;
+  sConfig.Channel = ADC_CHANNEL_10;
   sConfig.Rank = 1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  sConfig.SamplingTime = ADC_SAMPLETIME_28CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_11;
+  sConfig.Rank = 2;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_12;
+  sConfig.Rank = 3;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_13;
+  sConfig.Rank = 4;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_14;
+  sConfig.Rank = 5;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_5;
+  sConfig.Rank = 6;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_8;
+  sConfig.Rank = 7;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_9;
+  sConfig.Rank = 8;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -687,6 +830,22 @@ static void MX_USART6_UART_Init(void)
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA2_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -741,6 +900,254 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void Thrcot_Init(void)
+{
+	uint8_t Error_Data = 0;
+	uint8_t loop_flug = 0;
+
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ball_data, 8);
+	hdma_adc1.Instance -> CR &= ~(DMA_IT_TC | DMA_IT_HT);
+
+	OLED_Init(&hi2c2, OLED_Init_Data, sizeof(OLED_Init_Data));
+	OLED_Thrcot_Large_Logo_Display(&hi2c2);
+	HAL_Delay(2000);
+	OLED_AllClear(&hi2c2);
+
+	OLED_Char_Print("BMX055...", 0, 0);
+	OLED_Display(&hi2c2);
+	do {
+		Error_Data = BMX055_Init(&hi2c2, 2, 500);
+	} while (Error_Data != 0);
+
+	OLED_Char_Print("         OK", 0, 0);
+	OLED_Display(&hi2c2);
+	HAL_Delay(550);
+
+	OLED_Char_Print("Calibration...", 0, 8);
+	OLED_Display(&hi2c2);
+
+	gz_offset = Gyro_Offset_Z(1000);
+
+	OLED_Char_Print("BMX055 Init Complete!", 0, 16);
+	OLED_Display(&hi2c2);
+	HAL_Delay(2000);
+
+	do {
+		uint8_t sw2_state = 1;
+		uint8_t sw3_state = 1;
+
+		OLED_DataClear();
+		OLED_Char_Print("Do you use Camera?", 0, 0);
+		OLED_Char_Print("Y : SW2  N : SW3", 0, 8);
+		OLED_Display(&hi2c2);
+
+		while (sw2_state == 1 && sw3_state == 1) {
+			sw2_state = HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin);
+			sw3_state = HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin);
+		}
+		while (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0 || HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin) == 0);
+
+		if (sw2_state == 0) {
+			Camera_enable = 1;
+			OLED_Char_Print("Camera enable, OK?", 0, 16);
+		} else {
+			Camera_enable = 0;
+			OLED_Char_Print("Camera disable, OK?", 0, 16);
+		}
+
+		OLED_Char_Print("Y : SW2  N : SW3", 0, 24);
+		OLED_Display(&hi2c2);
+
+		sw2_state = sw3_state = 1;
+
+		while (sw2_state == 1 && sw3_state == 1) {
+			sw2_state = HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin);
+			sw3_state = HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin);
+		}
+
+		while (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0 || HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin) == 0);
+
+		if (sw2_state == 0) {
+			loop_flug = 1;
+		} else {
+			  loop_flug = 0;
+		}
+	} while(loop_flug == 0);
+
+	loop_flug = 0;
+
+	do {
+		uint8_t sw2_state = 1;
+		uint8_t sw3_state = 1;
+
+		OLED_DataClear();
+		OLED_Char_Print("Do you use Speaker?", 0, 0);
+		OLED_Char_Print("Y : SW2  N : SW3", 0, 8);
+		OLED_Display(&hi2c2);
+
+		while (sw2_state == 1 && sw3_state == 1) {
+			sw2_state = HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin);
+		  	sw3_state = HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin);
+		}
+		while (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0 || HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin) == 0);
+
+		if (sw2_state == 0) {
+			DFPlayer_enable = 1;
+			OLED_Char_Print("Speaker enable, OK?", 0, 16);
+		} else {
+			DFPlayer_enable = 0;
+			OLED_Char_Print("Speaker disable, OK?", 0, 16);
+		}
+
+		OLED_Char_Print("Y : SW2  N : SW3", 0, 24);
+		OLED_Display(&hi2c2);
+
+		sw2_state = sw3_state = 1;
+
+		while (sw2_state == 1 && sw3_state == 1) {
+		   	sw2_state = HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin);
+		   	sw3_state = HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin);
+		}
+		while (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0 || HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin) == 0);
+
+		if (sw2_state == 0) {
+			loop_flug = 1;
+		} else {
+			loop_flug = 0;
+		}
+	} while (loop_flug == 0);
+
+	if (DFPlayer_enable == 1) {
+		OLED_DataClear();
+		OLED_Char_Print("DFPlayer Init...", 0, 0);
+		OLED_Display(&hi2c2);
+
+		DFP_Init(&huart6);
+
+		OLED_Char_Print("Complete!", 0, 8);
+		OLED_Display(&hi2c2);
+		HAL_Delay(1500);
+	}
+
+	Motor_Init();
+}
+
+void Debug_Mode(Debug_Select_t debug_kind)
+{
+	uint8_t __select_num = 0;
+	uint8_t sw2_state, start_sw_state;
+
+	switch (debug_kind) {
+		case LINE_CHECK:
+			while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 1) {
+				sw2_state = HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin);
+				start_sw_state = HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin);
+
+				OLED_DataClear();
+				OLED_Char_Print("Select by SW2", 0, 0);
+				OLED_Char_Print("Decide by StartSW", 0, 8);
+				OLED_Char_Print("Back by SW1", 0, 16);
+				OLED_Char_Print(" Connecting test", 0, 24);
+				OLED_Char_Print(" Reading Line", 0, 32);
+				OLED_Char_Print(">", 0, __select_num * 8 + 24);
+				OLED_Display(&hi2c2);
+
+				if (sw2_state == 0) {
+					while (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0);
+					__select_num = (__select_num == 1) ? 0 : 1;
+				}
+
+				if (start_sw_state == 0) {
+					while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 0);
+
+					if (__select_num == 0) {
+						OLED_DataClear();
+						OLED_Char_Print("Line Connect test...", 0, 0);
+						for (int i = 0; i < 5; i++) {
+							OLED_Char_Print("Connecting...", 0, i * 8 + 8);
+							if (Line_Conenct_Test() == 0) {
+								OLED_Char_Print("Success!", 0, (i + 1) * 8 + 8);
+								OLED_Display(&hi2c2);
+								HAL_Delay(1000);
+
+								break;
+							} else if (i == 4) {
+								OLED_Char_Print("Not found!", 0, (i + 1) * 8 + 8);
+								OLED_Display(&hi2c2);
+								HAL_Delay(1000);
+							}
+
+							OLED_Display(&hi2c2);
+						}
+					}
+				}
+			}
+
+			break;
+
+		case BALL_CHECK:
+			while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 1) {
+				sw2_state = HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin);
+				start_sw_state = HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin);
+
+				OLED_DataClear();
+				OLED_Char_Print("Select by SW2", 0, 0);
+				OLED_Char_Print("Decide by StartSW", 0, 8);
+				OLED_Char_Print("Back by SW1", 0, 16);
+				OLED_Char_Print(" Read all channels", 0, 24);
+				OLED_Char_Print(" Ball angle check", 0, 32);
+				OLED_Char_Print(">", 0, debug_kind * 8 + 24);
+				OLED_Display(&hi2c2);
+
+				if (sw2_state == 0) {
+					while (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0);
+					debug_kind = (debug_kind == 1) ? 0 : 1;
+				}
+
+				if (start_sw_state == 0) {
+					while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 0);
+
+					while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 1) {
+						OLED_DataClear();
+						OLED_Char_Print("Read ADC channel...", 0, 0);
+						OLED_Char_Print("Back by SW1", 0, 8);
+
+						if (debug_kind == 0) {
+							OLED_Char_Print("ch:", 0, 16);	OLED_Int_Print(Ball_data[0], 18, 16);
+						} else {
+
+						}
+
+						OLED_Display(&hi2c2);
+					}
+
+					while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 0);
+				}
+			}
+
+		default:
+			break;
+	}
+
+	while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 0);
+}
+
+uint8_t Line_Conenct_Test(void)
+{
+	uint8_t __receive_buf[2];
+
+	HAL_UART_Transmit(&huart2, check_line, 2, 1000);
+	if (HAL_UART_Receive(&huart2, __receive_buf, 2, 1000) == HAL_OK) {
+		if (__receive_buf[0] == 0xF3 && __receive_buf[1] == 0x03) {
+			return 0;
+		} else {
+			return 1;
+		}
+	} else {
+		return 1;
+	}
+}
+
 int StartSW_keep_state(void)
 {
 	static int pre_state = 0;
@@ -799,44 +1206,6 @@ int SW3_keep_state(void)
 	pre_state = SW_state;
 
 	return keep_state;
-}
-
-void Audio_Setting(void)
-{
-	DFP_Pause();
-
-	int volume = 0;
-
-	while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 1) {
-		static int preSW2 = 0;
-		static int preSW3 = 0;
-
-		int SW2 = SW2_keep_state();
-		int SW3 = SW3_keep_state();
-
-		if (SW2 != preSW2) {
-			volume = (volume == 0) ? 0 : volume - 1;
-		}
-
-		if (SW3 != preSW3) {
-			volume = (volume == 30) ? 30 : volume + 1;
-		}
-
-		OLED_DataClear();
-		OLED_Line_Display(19, 20, 108, 20);
-		OLED_Circle_Draw(volume * 3 + 19, 20, 5);
-		OLED_Char_Print("volume : ", 0, 0);
-		OLED_Int_Print(volume, 54, 0);
-		OLED_Display(&hi2c2);
-
-		preSW2 = SW2;
-		preSW3 = SW3;
-	}
-
-	OLED_AllClear(&hi2c2);
-
-	DFP_Volume(volume);
-	DFP_Play(1);
 }
 
 void Motor_Init(void)
