@@ -45,6 +45,9 @@ typedef enum {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define P_GAIN	5
+#define I_GAIN	0
+#define D_GAIN	0
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -102,12 +105,6 @@ void Thrcot_Init(void);
 
 /*Debug function*/
 void Debug_Mode(Debug_Select_t debug_kind);
-
-/*switch control function*/
-int SW1_keep_state(void);
-int SW2_keep_state(void);
-int SW3_keep_state(void);
-int StartSW_keep_state(void);
 
 /*Ball sensor function*/
 double Ball_Angle(void);
@@ -179,7 +176,7 @@ int main(void)
 
   double duration = 0.0;
 
-  int gz = 0;
+  long long gz = 0;
   double angle = 0;
 
   Thrcot_Init();
@@ -258,26 +255,126 @@ int main(void)
 			break;
 
 		case GAME_MODE:
+			int Line_angle = 0;
+			double Ball_angle = 0.0;
+
+			angle = 0.0;
+
 			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
 			HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 1);
 
-			OLED_DataClear();
-			OLED_Char_Print("Game Mode...", 0, 0);
-			OLED_Char_Print("Please press StartSW", 0, 8);
-			OLED_Display(&hi2c2);
+			while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 1) {
+				start = DWT -> CYCCNT;
 
-			while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 1);
+				gz = Gyro_Get_Z() - gz_offset;
+				angle += -1 * gz * duration * (500.0 / 32767.0);
+
+				OLED_DataClear();
+				OLED_Char_Print("Game Mode...", 0, 0);
+				OLED_Char_Print("Please press StartSW", 0, 8);
+				OLED_Double_Print(angle, 0, 16);
+				OLED_Display(&hi2c2);
+
+				stop = DWT -> CYCCNT;
+				duration = (double)(stop - start) / 180000000.0;
+			}
+
 			while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 0);
-
-			OLED_DataClear();
-			OLED_Char_Print("Running...", 0, 0);
-			OLED_Display(&hi2c2);
 
 			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 0);
 			HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 0);
 
 			while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin)) {
+				start = DWT -> CYCCNT;
 
+				static double P_val = 0.0;
+				static double I_val = 0.0;
+				static double D_val = 0.0;
+				static double pre_P_val = 0.0;
+
+				int M1_speed = 0;
+				int M2_speed = 0;
+				int M3_speed = 0;
+				int M4_speed = 0;
+
+				gz = Gyro_Get_Z() - gz_offset;
+				angle += -1 * gz * duration * (500.0 / 32767.0);
+				if (angle > 180.0) {
+					angle = angle - 360.0;
+				} else if (angle < -180.0) {
+					angle = angle + 360.0;
+				}
+
+				Line_angle = Line_Get();
+				Ball_angle = Ball_Angle();
+
+				if (Line_angle != 300) {
+					Stright_control(180 - Line_angle, 1023);
+				} else {
+					if (angle >= 5.0 || angle <= -5.0) {
+						int rotate_duty = 0;
+
+						P_val = -angle;
+						I_val += P_val * duration;
+						D_val = (P_val - pre_P_val) * duration;
+						pre_P_val = P_val;
+
+						rotate_duty = P_val * P_GAIN + I_val * I_GAIN + D_val * D_GAIN;
+						M1_speed = M2_speed = M3_speed = M4_speed = rotate_duty;
+					} else {
+						I_val = 0.0;
+					}
+
+					if (Ball_angle != 300.0) {
+						Ball_angle = Ball_angle * 180.0 / PI;
+
+						if (Ball_angle <= 5.0 && Ball_angle >= -5.0) {
+							M1_speed += sin((Ball_angle - 45.0) * PI / 180.0) * 1023;
+							M2_speed += sin((Ball_angle - 135.0) * PI / 180.0) * 1023;
+							M3_speed += sin((Ball_angle - 225.0) * PI / 180.0) * 1023;
+							M4_speed += sin((Ball_angle - 315.0) * PI / 180.0) * 1023;
+						} else if (Ball_angle <= 90.0 && Ball_angle >= -90.0) {
+							M1_speed += sin((Ball_angle - 15.0) * PI / 180.0) * 1023;
+							M2_speed += sin((Ball_angle - 105.0) * PI / 180.0) * 1023;
+							M3_speed += sin((Ball_angle - 195.0) * PI / 180.0) * 1023;
+							M4_speed += sin((Ball_angle - 285.0) * PI / 180.0) * 1023;
+						} else {
+							M1_speed += sin((Ball_angle) * PI / 180.0) * 1023;
+							M2_speed += sin((Ball_angle - 90.0) * PI / 180.0) * 1023;
+							M3_speed += sin((Ball_angle - 180.0) * PI / 180.0) * 1023;
+							M4_speed += sin((Ball_angle - 270.0) * PI / 180.0) * 1023;
+						}
+					}
+
+					int Motor_speed[3];
+					int max = (M1_speed < 0) ? -M1_speed : M1_speed;
+					double speed_offset = 0.0;
+
+					Motor_speed[0] = (M2_speed < 0) ? -M2_speed : M2_speed;
+					Motor_speed[1] = (M3_speed < 0) ? -M3_speed : M3_speed;
+					Motor_speed[2] = (M4_speed < 0) ? -M4_speed : M4_speed;
+
+					for (int i = 0; i < 3; i++) {
+						if (Motor_speed[i] > max) {
+							max = Motor_speed[i];
+						}
+					}
+
+					speed_offset = 1023.0 / (double)max;
+
+					M1_speed *= speed_offset;
+					M2_speed *= speed_offset;
+					M3_speed *= speed_offset;
+					M4_speed *= speed_offset;
+
+					M1_control(M1_speed);
+					M2_control(M2_speed);
+					M3_control(M3_speed);
+					M4_control(M4_speed);
+				}
+
+				stop = DWT -> CYCCNT;
+				duration = (double)(stop - start) / 180000000.0;
 			}
 
 			while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 0);
@@ -1135,14 +1232,14 @@ void Debug_Mode(Debug_Select_t debug_kind)
 
 						if (debug_kind == 0) {
 							OLED_Char_Print("Read ADC channel...", 0, 0);
-							OLED_Char_Print("ch1:", 0, 24);		OLED_Int_Print(Ball_data[0], 24, 24);
-							OLED_Char_Print("ch2:", 54, 24); 	OLED_Int_Print(Ball_data[1], 78, 24);
-							OLED_Char_Print("ch3:", 0, 32); 	OLED_Int_Print(Ball_data[2], 24, 32);
-							OLED_Char_Print("ch4:", 54, 32);	OLED_Int_Print(Ball_data[3], 78, 32);
-							OLED_Char_Print("ch5:", 0, 40);		OLED_Int_Print(Ball_data[4], 24, 40);
-							OLED_Char_Print("ch6;", 54, 40);	OLED_Int_Print(Ball_data[5], 78, 40);
-							OLED_Char_Print("ch7:", 0, 48);		OLED_Int_Print(Ball_data[6], 24, 48);
-							OLED_Char_Print("ch8:", 54, 48);	OLED_Int_Print(Ball_data[7], 78, 48);
+							OLED_Char_Print("ch1:", 0, 24);		OLED_Int_Print(4095 - Ball_data[0], 24, 24);
+							OLED_Char_Print("ch2:", 54, 24); 	OLED_Int_Print(4095 - Ball_data[1], 78, 24);
+							OLED_Char_Print("ch3:", 0, 32); 	OLED_Int_Print(4095 - Ball_data[2], 24, 32);
+							OLED_Char_Print("ch4:", 54, 32);	OLED_Int_Print(4095 - Ball_data[3], 78, 32);
+							OLED_Char_Print("ch5:", 0, 40);		OLED_Int_Print(4095 - Ball_data[4], 24, 40);
+							OLED_Char_Print("ch6;", 54, 40);	OLED_Int_Print(4095 - Ball_data[5], 78, 40);
+							OLED_Char_Print("ch7:", 0, 48);		OLED_Int_Print(4095 - Ball_data[6], 24, 48);
+							OLED_Char_Print("ch8:", 54, 48);	OLED_Int_Print(4095 - Ball_data[7], 78, 48);
 						} else {
 							double Ball_angle = Ball_Angle();
 							double angle = Ball_angle * 180.0 / PI;
@@ -1249,66 +1346,6 @@ void Debug_Mode(Debug_Select_t debug_kind)
 	while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 0);
 }
 
-int StartSW_keep_state(void)
-{
-	static int pre_state = 0;
-	static int keep_state = 0;
-	int SW_state = 1 - HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin);
-
-	if (SW_state == 1 && pre_state == 0) {
-		keep_state = 1 - keep_state;
-	}
-
-	pre_state = SW_state;
-
-	return keep_state;
-}
-
-int SW1_keep_state(void)
-{
-	static int pre_state = 0;
-	static int keep_state = 0;
-	int SW_state = 1 - HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin);
-
-	if (SW_state == 1 && pre_state == 0) {
-		keep_state = 1 - keep_state;
-	}
-
-	pre_state = SW_state;
-
-	return keep_state;
-}
-
-int SW2_keep_state(void)
-{
-	static int pre_state = 0;
-	static int keep_state = 0;
-	int SW_state = 1 - HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin);
-
-	if (SW_state == 1 && pre_state == 0) {
-		keep_state = 1 - keep_state;
-	}
-
-	pre_state = SW_state;
-
-	return keep_state;
-}
-
-int SW3_keep_state(void)
-{
-	static int pre_state = 0;
-	static int keep_state = 0;
-	int SW_state = 1 - HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin);
-
-	if (SW_state == 1 && pre_state == 0) {
-		keep_state = 1 - keep_state;
-	}
-
-	pre_state = SW_state;
-
-	return keep_state;
-}
-
 double Ball_Angle(void)
 {
 	double x_val = 0.0;
@@ -1347,7 +1384,11 @@ double Ball_Angle(void)
 		y_val += sin(Sensor_angle[i]) * (4095 - Ball_data[i]);
 	}
 
-	return atan2(y_val, x_val);
+	if (x_val == 0.0 && y_val == 0.0) {
+		return 300.0;
+	} else {
+		return atan2(y_val, x_val);
+	}
 }
 
 uint8_t Line_Conenct_Test(void)
@@ -1417,20 +1458,20 @@ void M1_control(int speed)
 	}
 }
 
-void M4_control(int speed)
+void M2_control(int speed)
 {
 	if (speed == 0) {
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 0);
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, 0);
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
 	} else if (speed > 0 && speed < 1024) {
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, speed);
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, 0);
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, speed);
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
 	} else if (speed < 0 && speed > -1024) {
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 0);
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, -speed);
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, -speed);
 	} else {
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 1023);
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, 1023);
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 1023);
+		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 1023);
 	}
 }
 
@@ -1451,34 +1492,57 @@ void M3_control(int speed)
 	}
 }
 
-void M2_control(int speed)
+void M4_control(int speed)
 {
 	if (speed == 0) {
-		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 0);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, 0);
 	} else if (speed > 0 && speed < 1024) {
-		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, speed);
-		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, speed);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 0);
+
+		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 1);
 	} else if (speed < 0 && speed > -1024) {
-		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
-		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, -speed);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, 0);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, -speed);
+
+		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 0);
 	} else {
-		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 1023);
-		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 1023);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 1023);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, 1023);
 	}
 }
 
 void Stright_control(double angle, int speed)
 {
+	int max = 0;
+	int speed_offset = 0;
+
 	int M1_speed = sin((angle - 45) * PI / 180) * speed;
 	int M2_speed = sin((angle - 135) * PI / 180) * speed;
 	int M3_speed = sin((angle - 225) * PI / 180) * speed;
 	int M4_speed = sin((angle - 315) * PI / 180) * speed;
 
-	M1_control(M1_speed);
-	M2_control(M2_speed);
-	M3_control(M3_speed);
-	M4_control(M4_speed);
+	max = abs(M1_speed);
+	if (max < abs(M2_speed)) {
+		max = abs(M2_speed);
+	}
+
+	if (max < abs(M3_speed)) {
+		max = abs(M3_speed);
+	}
+
+	if (max < abs(M4_speed)) {
+		max = abs(M4_speed);
+	}
+
+	speed_offset = speed / max;
+	speed_offset = (speed_offset < 0) ? -speed_offset : speed_offset;
+
+	M1_control(M1_speed * speed_offset);
+	M2_control(M2_speed * speed_offset);
+	M3_control(M3_speed * speed_offset);
+	M4_control(M4_speed * speed_offset);
 }
 /* USER CODE END 4 */
 

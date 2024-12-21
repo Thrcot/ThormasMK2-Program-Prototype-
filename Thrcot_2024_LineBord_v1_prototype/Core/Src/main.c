@@ -31,21 +31,64 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define PI 3.1415926535
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+#define DEG_TO_RAD(x)	(x * PI / 180.0)
+#define RAD_TO_DEG(x)	(x * 180.0 / PI)
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
+uint32_t LinePort[18] = {
+		(uint32_t)(LS1_GPIO_Port),
+		(uint32_t)(LS18_GPIO_Port),
+		(uint32_t)(LS17_GPIO_Port),
+		(uint32_t)(LS16_GPIO_Port),
+		(uint32_t)(LS15_GPIO_Port),
+		(uint32_t)(LS14_GPIO_Port),
+		(uint32_t)(LS13_GPIO_Port),
+		(uint32_t)(LS12_GPIO_Port),
+		(uint32_t)(LS11_GPIO_Port),
+		(uint32_t)(LS10_GPIO_Port),
+		(uint32_t)(LS9_GPIO_Port),
+		(uint32_t)(LS8_GPIO_Port),
+		(uint32_t)(LS7_GPIO_Port),
+		(uint32_t)(LS6_GPIO_Port),
+		(uint32_t)(LS5_GPIO_Port),
+		(uint32_t)(LS4_GPIO_Port),
+		(uint32_t)(LS3_GPIO_Port),
+		(uint32_t)(LS2_GPIO_Port)
+};
+
+uint16_t LinePin[18] = {
+		(uint16_t)(LS1_Pin),
+		(uint16_t)(LS18_Pin),
+		(uint16_t)(LS17_Pin),
+		(uint16_t)(LS16_Pin),
+		(uint16_t)(LS15_Pin),
+		(uint16_t)(LS14_Pin),
+		(uint16_t)(LS13_Pin),
+		(uint16_t)(LS12_Pin),
+		(uint16_t)(LS11_Pin),
+		(uint16_t)(LS10_Pin),
+		(uint16_t)(LS9_Pin),
+		(uint16_t)(LS8_Pin),
+		(uint16_t)(LS7_Pin),
+		(uint16_t)(LS6_Pin),
+		(uint16_t)(LS5_Pin),
+		(uint16_t)(LS4_Pin),
+		(uint16_t)(LS3_Pin),
+		(uint16_t)(LS2_Pin),
+};
+
 uint8_t rx_buf[10];
 uint8_t return_id[2] = {0xF3, 0x03};
-uint8_t return_data[2] = {0x00, 0x00};
+uint8_t return_data[2] = {0xFF, 0xFF};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -102,8 +145,26 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  uint8_t Line1 = HAL_GPIO_ReadPin(LS1_GPIO_Port, LS1_Pin);
-	  HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, Line1);
+	  double x_val = 0.0;
+	  double y_val = 0.0;
+
+	  for (int i = 0; i < 18; i++) {
+		  uint8_t LineState = HAL_GPIO_ReadPin((GPIO_TypeDef*)(LinePort[i]), LinePin[i]);
+
+		  if (LineState == 0) {
+			  x_val += cos(DEG_TO_RAD((360.0 / (double)(i * 20))));
+			  y_val += sin(DEG_TO_RAD((360.0 / (double)(i * 20))));
+		  }
+	  }
+
+	  if (x_val == 0.0 && y_val == 0.0) {
+		  return_data[0] = 0xFF;
+		  return_data[1] = 0xFF;
+	  } else {
+		  int line_angle = RAD_TO_DEG(atan2(y_val, x_val));
+		  return_data[0] = (line_angle < 0) ? 1 : 0;
+		  return_data[1] = (line_angle < 0) ? -line_angle : line_angle;
+	  }
 
 	  HAL_UART_Receive_IT(&huart1, rx_buf, 2);
   }
@@ -240,7 +301,7 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	//HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+	HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 
 	if (rx_buf[0] == 0xF3 && rx_buf[1] == 0x03) {
 		HAL_UART_Transmit(&huart1, return_id, 2, 1000);
