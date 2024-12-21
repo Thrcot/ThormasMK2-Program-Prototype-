@@ -79,6 +79,7 @@ uint8_t check_line[2] = {0xF3, 0x03};
 uint8_t request_line[2] = {0xF0, 0x33};
 
 uint16_t Ball_data[8] = {0};
+double Sensor_angle[8] = {0.0, 0.785398, 1.570796, 2.356194, 3.141592, 3.926990, 4.712388, 5.497787};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -108,8 +109,8 @@ int SW2_keep_state(void);
 int SW3_keep_state(void);
 int StartSW_keep_state(void);
 
-/*ADC and Ball sensor function*/
-
+/*Ball sensor function*/
+double Ball_Angle(void);
 
 /*motor control function*/
 void Motor_Init(void);
@@ -379,7 +380,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
-  sConfig.Channel = ADC_CHANNEL_10;
+  sConfig.Channel = ADC_CHANNEL_11;
   sConfig.Rank = 1;
   sConfig.SamplingTime = ADC_SAMPLETIME_28CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
@@ -389,7 +390,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
-  sConfig.Channel = ADC_CHANNEL_11;
+  sConfig.Channel = ADC_CHANNEL_12;
   sConfig.Rank = 2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -398,7 +399,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
-  sConfig.Channel = ADC_CHANNEL_12;
+  sConfig.Channel = ADC_CHANNEL_13;
   sConfig.Rank = 3;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -407,7 +408,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
-  sConfig.Channel = ADC_CHANNEL_13;
+  sConfig.Channel = ADC_CHANNEL_14;
   sConfig.Rank = 4;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -416,7 +417,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
-  sConfig.Channel = ADC_CHANNEL_14;
+  sConfig.Channel = ADC_CHANNEL_5;
   sConfig.Rank = 5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -425,7 +426,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
-  sConfig.Channel = ADC_CHANNEL_5;
+  sConfig.Channel = ADC_CHANNEL_8;
   sConfig.Rank = 6;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -434,7 +435,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
-  sConfig.Channel = ADC_CHANNEL_8;
+  sConfig.Channel = ADC_CHANNEL_9;
   sConfig.Rank = 7;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -443,7 +444,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
-  sConfig.Channel = ADC_CHANNEL_9;
+  sConfig.Channel = ADC_CHANNEL_10;
   sConfig.Rank = 8;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -1109,13 +1110,34 @@ void Debug_Mode(Debug_Select_t debug_kind)
 
 					while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 1) {
 						OLED_DataClear();
-						OLED_Char_Print("Read ADC channel...", 0, 0);
 						OLED_Char_Print("Back by SW1", 0, 8);
 
 						if (debug_kind == 0) {
-							OLED_Char_Print("ch:", 0, 16);	OLED_Int_Print(Ball_data[0], 18, 16);
+							OLED_Char_Print("Read ADC channel...", 0, 0);
+							OLED_Char_Print("ch1:", 0, 24);		OLED_Int_Print(Ball_data[0], 24, 24);
+							OLED_Char_Print("ch2:", 54, 24); 	OLED_Int_Print(Ball_data[1], 78, 24);
+							OLED_Char_Print("ch3:", 0, 32); 	OLED_Int_Print(Ball_data[2], 24, 32);
+							OLED_Char_Print("ch4:", 54, 32);	OLED_Int_Print(Ball_data[3], 78, 32);
+							OLED_Char_Print("ch5:", 0, 40);		OLED_Int_Print(Ball_data[4], 24, 40);
+							OLED_Char_Print("ch6;", 54, 40);	OLED_Int_Print(Ball_data[5], 78, 40);
+							OLED_Char_Print("ch7:", 0, 48);		OLED_Int_Print(Ball_data[6], 24, 48);
+							OLED_Char_Print("ch8:", 54, 48);	OLED_Int_Print(Ball_data[7], 78, 48);
 						} else {
+							double Ball_angle = Ball_Angle();
+							double angle = Ball_angle * 180.0 / PI;
+							int x_pos = 0.0;
+							int y_pos = 0.0;
 
+							x_pos = 63.0 + (20.0 * sin(Ball_angle));
+							y_pos = 39.0 - (20.0 * cos(Ball_angle));
+
+							OLED_Char_Print("Ball Angle...", 0, 0);
+							OLED_Char_Print("angle:", 0, 56);
+							OLED_Double_Print(angle, 36, 56);
+							OLED_Vartical_Display(16, 63, 63);
+							OLED_Horizontal_Display(0, 127, 39);
+							OLED_Circle_Draw(63, 39, 20);
+							OLED_Circle_Draw(x_pos, y_pos, 5);
 						}
 
 						OLED_Display(&hi2c2);
@@ -1206,6 +1228,47 @@ int SW3_keep_state(void)
 	pre_state = SW_state;
 
 	return keep_state;
+}
+
+double Ball_Angle(void)
+{
+	double x_val = 0.0;
+	double y_val = 0.0;
+	//uint16_t __Ball_val[8];
+	//uint16_t max_val = 0;
+	//uint8_t max_ch = 0;
+
+	/*for (int i = 0; i < 8; i++) {
+		__Ball_val[i] = 4095 - Ball_data[i];
+	}*/
+
+	/*max_val = __Ball_val[0];
+	for (int i = 1; i < 8; i++) {
+		if (max_val < __Ball_val[i]) {
+			max_val = __Ball_val[i];
+			max_ch++;
+		}
+	}
+
+	if (max_ch == 0) {
+		x_val = __Ball_val[7] * sin(Sensor_anlge[7]) + __Ball_val[0] + __Ball_val[1] * sin(Sensor_anlge[1]);
+		y_val = __Ball_val[7] * cos(Sensor_anlge[7]) + __Ball_val[1] * cos(Sensor_anlge[1]);
+	} else if (max_ch == 7){
+		x_val = __Ball_val[6] * sin(Sensor_anlge[6]) + __Ball_val[7] * sin(Sensor_anlge[7]) + __Ball_val[0];
+		y_val = __Ball_val[6] * cos(Sensor_anlge[6]) * __Ball_val[7] * cos(Sensor_anlge[7]);
+	} else {
+		for (int i = max_ch - 1; i <= max_ch + 1; i++) {
+			x_val += __Ball_val[i] * sin(Sensor_anlge[i]);
+			y_val += __Ball_val[i] * cos(Sensor_anlge[i]);
+		}
+	}*/
+
+	for (int i = 0; i < 8; i++) {
+		x_val += cos(Sensor_angle[i]) * (4095 - Ball_data[i]);
+		y_val += sin(Sensor_angle[i]) * (4095 - Ball_data[i]);
+	}
+
+	return atan2(y_val, x_val);
 }
 
 void Motor_Init(void)
