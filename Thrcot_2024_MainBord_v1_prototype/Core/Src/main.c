@@ -102,7 +102,7 @@ void Thrcot_Init(void);
 
 /*Debug function*/
 void Debug_Mode(Debug_Select_t debug_kind);
-uint8_t Line_Conenct_Test(void);
+
 /*switch control function*/
 int SW1_keep_state(void);
 int SW2_keep_state(void);
@@ -111,6 +111,10 @@ int StartSW_keep_state(void);
 
 /*Ball sensor function*/
 double Ball_Angle(void);
+
+/*Line sensor function*/
+uint8_t Line_Conenct_Test(void);
+int Line_Get(void);
 
 /*motor control function*/
 void Motor_Init(void);
@@ -1080,6 +1084,23 @@ void Debug_Mode(Debug_Select_t debug_kind)
 
 							OLED_Display(&hi2c2);
 						}
+					} else {
+						while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 1) {
+							int line_angle = Line_Get();
+
+							OLED_DataClear();
+							OLED_Char_Print("Reading Line Angle...", 0, 0);
+							OLED_Char_Print("Back by SW1", 0, 8);
+							OLED_Char_Print("angle:", 0, 56);
+							if (line_angle == 300) {
+								OLED_Char_Print("NonData", 36, 56);
+							} else {
+								OLED_Int_Print(line_angle, 36, 56);
+							}
+							OLED_Display(&hi2c2);
+						}
+
+						while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 0);
 					}
 				}
 			}
@@ -1152,22 +1173,6 @@ void Debug_Mode(Debug_Select_t debug_kind)
 	}
 
 	while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 0);
-}
-
-uint8_t Line_Conenct_Test(void)
-{
-	uint8_t __receive_buf[2];
-
-	HAL_UART_Transmit(&huart2, check_line, 2, 1000);
-	if (HAL_UART_Receive(&huart2, __receive_buf, 2, 1000) == HAL_OK) {
-		if (__receive_buf[0] == 0xF3 && __receive_buf[1] == 0x03) {
-			return 0;
-		} else {
-			return 1;
-		}
-	} else {
-		return 1;
-	}
 }
 
 int StartSW_keep_state(void)
@@ -1269,6 +1274,40 @@ double Ball_Angle(void)
 	}
 
 	return atan2(y_val, x_val);
+}
+
+uint8_t Line_Conenct_Test(void)
+{
+	uint8_t __receive_buf[2];
+
+	HAL_UART_Transmit(&huart2, check_line, 2, 1000);
+	if (HAL_UART_Receive(&huart2, __receive_buf, 2, 1000) == HAL_OK) {
+		if (__receive_buf[0] == 0xF3 && __receive_buf[1] == 0x03) {
+			return 0;
+		} else {
+			return 1;
+		}
+	} else {
+		return 1;
+	}
+}
+
+int Line_Get(void)
+{
+	uint8_t __receive_buf[2];
+	int line_angle = 0;
+
+	HAL_UART_Transmit(&huart2, request_line, 2, 1000);
+	if (HAL_UART_Receive(&huart2, __receive_buf, 2, 100) == HAL_OK) {
+		if (__receive_buf[0] > 1 || __receive_buf[1] > 180) {
+			return 300;
+		} else {
+			line_angle = (__receive_buf[0] == 1) ? __receive_buf[1] * -1 : __receive_buf[1];
+			return line_angle;
+		}
+	} else {
+		return 300;
+	}
 }
 
 void Motor_Init(void)
