@@ -1168,6 +1168,80 @@ void Debug_Mode(Debug_Select_t debug_kind)
 				}
 			}
 
+			break;
+
+		case MOTOR_CHECK:
+			while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 1) {
+				sw2_state = HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin);
+				start_sw_state = HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin);
+
+				OLED_DataClear();
+				OLED_Char_Print("Select by SW2", 0, 0);
+				OLED_Char_Print("Forward by StartSW", 0, 8);
+				OLED_Char_Print("Back by SW1", 0, 16);
+				OLED_Char_Print(" Motor1", 0, 24);
+				OLED_Char_Print(" Motor2", 0, 32);
+				OLED_Char_Print(" Motor3", 0, 40);
+				OLED_Char_Print(" Motor4", 0, 48);
+				OLED_Char_Print(" All Motor", 0, 56);
+				OLED_Char_Print(">", 0, __select_num * 8 + 24);
+				OLED_Display(&hi2c2);
+
+				if (sw2_state == 0) {
+					while (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0);
+					__select_num = (__select_num == 4) ? 0 : __select_num + 1;
+				}
+
+				if (start_sw_state == 0) {
+					switch (__select_num) {
+						case 0:
+							M1_control(1023);
+							M2_control(0);
+							M3_control(0);
+							M4_control(0);
+							break;
+
+						case 1:
+							M1_control(0);
+							M2_control(1023);
+							M3_control(0);
+							M4_control(0);
+							break;
+
+						case 2:
+							M1_control(0);
+							M2_control(0);
+							M3_control(1023);
+							M4_control(0);
+							break;
+
+						case 3:
+							M1_control(0);
+							M2_control(0);
+							M3_control(0);
+							M4_control(1023);
+							break;
+
+						case 4:
+							M1_control(1023);
+							M2_control(1023);
+							M3_control(1023);
+							M4_control(1023);
+							break;
+
+						default:
+							break;
+					}
+				} else {
+					M1_control(0);
+					M2_control(0);
+					M3_control(0);
+					M4_control(0);
+				}
+			}
+
+			break;
+
 		default:
 			break;
 	}
