@@ -21,6 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdlib.h>
 #include <math.h>
 #include "ssd1306_hal.h"
 #include "DFPlayer_hal.h"
@@ -40,14 +41,18 @@ typedef enum {
 	BALL_CHECK,
 	BMX_CHECK,
 	MOTOR_CHECK,
+	AUDIO_CHECK,
 } Debug_Select_t;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define P_GAIN	5
+#define P_GAIN	5.6
 #define I_GAIN	0
 #define D_GAIN	0
+
+#define ROUND_P_1	30.0
+#define ROUND_P_2	50.0
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -78,11 +83,15 @@ uint8_t DFPlayer_enable = 0;
 uint8_t Camera_enable = 0;
 uint8_t WiFi_enable = 0;
 
+uint8_t speaker_volume = 20;
+
 uint8_t check_line[2] = {0xF3, 0x03};
 uint8_t request_line[2] = {0xF0, 0x33};
 
 uint16_t Ball_data[8] = {0};
 double Sensor_angle[8] = {0.0, 0.785398, 1.570796, 2.356194, 3.141592, 3.926990, 4.712388, 5.497787};
+
+uint8_t __receive_buf[3] = {0xFF, 0xFF, 0xFF};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -111,7 +120,7 @@ double Ball_Angle(void);
 
 /*Line sensor function*/
 uint8_t Line_Conenct_Test(void);
-int Line_Get(void);
+double Line_Get(void);
 
 /*motor control function*/
 void Motor_Init(void);
@@ -237,12 +246,13 @@ int main(void)
 				OLED_Char_Print(" Ball check", 0, 32);
 				OLED_Char_Print(" BMX check", 0, 40);
 				OLED_Char_Print(" Motor check", 0, 48);
+				OLED_Char_Print(" Audio check", 0, 56);
 				OLED_Char_Print(">", 0, debug * 8 + 24);
 				OLED_Display(&hi2c2);
 
 				if (sw2_state == 0) {
 					while (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0);
-					debug = (debug == MOTOR_CHECK) ? LINE_CHECK : debug + 1;
+					debug = (debug == AUDIO_CHECK) ? LINE_CHECK : debug + 1;
 				}
 
 				if (start_sw_state == 0) {
@@ -255,7 +265,7 @@ int main(void)
 			break;
 
 		case GAME_MODE:
-			int Line_angle = 0;
+			double Line_angle = 0.0;
 			double Ball_angle = 0.0;
 
 			angle = 0.0;
@@ -266,13 +276,15 @@ int main(void)
 			while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 1) {
 				start = DWT -> CYCCNT;
 
-				gz = Gyro_Get_Z() - gz_offset;
-				angle += -1 * gz * duration * (500.0 / 32767.0);
+				gz = Gyro_Get_Z();
+				angle += -gz * duration * (500.0 / 32767.0);
 
 				OLED_DataClear();
 				OLED_Char_Print("Game Mode...", 0, 0);
 				OLED_Char_Print("Please press StartSW", 0, 8);
-				OLED_Double_Print(angle, 0, 16);
+				OLED_Int_Print(Gyro_Get_Z(), 0, 16);
+				OLED_Double_Print(duration, 0, 24);
+				OLED_Double_Print(angle, 0, 32);
 				OLED_Display(&hi2c2);
 
 				stop = DWT -> CYCCNT;
@@ -283,6 +295,10 @@ int main(void)
 
 			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 0);
 			HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 0);
+
+			OLED_DataClear();
+			OLED_Char_Print("Running...", 0, 0);
+			OLED_Display(&hi2c2);
 
 			while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin)) {
 				start = DWT -> CYCCNT;
@@ -297,7 +313,7 @@ int main(void)
 				int M3_speed = 0;
 				int M4_speed = 0;
 
-				gz = Gyro_Get_Z() - gz_offset;
+				gz = Gyro_Get_Z();
 				angle += -1 * gz * duration * (500.0 / 32767.0);
 				if (angle > 180.0) {
 					angle = angle - 360.0;
@@ -308,10 +324,16 @@ int main(void)
 				Line_angle = Line_Get();
 				Ball_angle = Ball_Angle();
 
-				if (Line_angle != 300) {
-					Stright_control(180 - Line_angle, 1023);
+				if (Line_angle != 300.0) {
+					if (__receive_buf[0] != 0) {
+						Stright_control(180, 1023);
+						HAL_Delay(200);
+					} else {
+						Stright_control(Line_angle, 1023);
+						HAL_Delay(200);
+					}
 				} else {
-					if (angle >= 5.0 || angle <= -5.0) {
+					if (/*angle >= 5.0 || angle <= -5.0*/0) {
 						int rotate_duty = 0;
 
 						P_val = -angle;
@@ -323,30 +345,33 @@ int main(void)
 						M1_speed = M2_speed = M3_speed = M4_speed = rotate_duty;
 					} else {
 						I_val = 0.0;
-					}
+						if (Ball_angle != 300.0) {
+							HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
 
-					if (Ball_angle != 300.0) {
-						Ball_angle = Ball_angle * 180.0 / PI;
+							Ball_angle = Ball_angle * 180.0 / PI;
 
-						if (Ball_angle <= 5.0 && Ball_angle >= -5.0) {
-							M1_speed += sin((Ball_angle - 45.0) * PI / 180.0) * 1023;
-							M2_speed += sin((Ball_angle - 135.0) * PI / 180.0) * 1023;
-							M3_speed += sin((Ball_angle - 225.0) * PI / 180.0) * 1023;
-							M4_speed += sin((Ball_angle - 315.0) * PI / 180.0) * 1023;
-						} else if (Ball_angle <= 90.0 && Ball_angle >= -90.0) {
-							M1_speed += sin((Ball_angle - 15.0) * PI / 180.0) * 1023;
-							M2_speed += sin((Ball_angle - 105.0) * PI / 180.0) * 1023;
-							M3_speed += sin((Ball_angle - 195.0) * PI / 180.0) * 1023;
-							M4_speed += sin((Ball_angle - 285.0) * PI / 180.0) * 1023;
+							if (Ball_angle <= 5.0 && Ball_angle >= -5.0) {
+								M1_speed += sin((Ball_angle - 45.0) * PI / 180.0) * 1023;
+								M2_speed += sin((Ball_angle - 135.0) * PI / 180.0) * 1023;
+								M3_speed += sin((Ball_angle - 225.0) * PI / 180.0) * 1023;
+								M4_speed += sin((Ball_angle - 315.0) * PI / 180.0) * 1023;
+							} else if (Ball_angle <= 90.0 && Ball_angle >= -90.0) {
+								M1_speed += sin((Ball_angle - 45.0 + ROUND_P_1) * PI / 180.0) * 1023;
+								M2_speed += sin((Ball_angle - 135.0 + ROUND_P_1) * PI / 180.0) * 1023;
+								M3_speed += sin((Ball_angle - 225.0 + ROUND_P_1) * PI / 180.0) * 1023;
+								M4_speed += sin((Ball_angle - 315.0 + ROUND_P_1) * PI / 180.0) * 1023;
+							} else {
+								M1_speed += sin((Ball_angle - 45.0 + ROUND_P_2) * PI / 180.0) * 1023;
+								M2_speed += sin((Ball_angle - 135.0 + ROUND_P_2) * PI / 180.0) * 1023;
+								M3_speed += sin((Ball_angle - 225.0 + ROUND_P_2) * PI / 180.0) * 1023;
+								M4_speed += sin((Ball_angle - 315.0 + ROUND_P_2) * PI / 180.0) * 1023;
+							}
 						} else {
-							M1_speed += sin((Ball_angle) * PI / 180.0) * 1023;
-							M2_speed += sin((Ball_angle - 90.0) * PI / 180.0) * 1023;
-							M3_speed += sin((Ball_angle - 180.0) * PI / 180.0) * 1023;
-							M4_speed += sin((Ball_angle - 270.0) * PI / 180.0) * 1023;
+							HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 0);
 						}
 					}
 
-					int Motor_speed[3];
+					/*int Motor_speed[3];
 					int max = (M1_speed < 0) ? -M1_speed : M1_speed;
 					double speed_offset = 0.0;
 
@@ -365,7 +390,7 @@ int main(void)
 					M1_speed *= speed_offset;
 					M2_speed *= speed_offset;
 					M3_speed *= speed_offset;
-					M4_speed *= speed_offset;
+					M4_speed *= speed_offset;*/
 
 					M1_control(M1_speed);
 					M2_control(M2_speed);
@@ -376,6 +401,11 @@ int main(void)
 				stop = DWT -> CYCCNT;
 				duration = (double)(stop - start) / 180000000.0;
 			}
+
+			M1_control(0);
+			M2_control(0);
+			M3_control(0);
+			M4_control(0);
 
 			while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 0);
 			robot_state = STANDBY_MODE;
@@ -1125,6 +1155,7 @@ void Thrcot_Init(void)
 		OLED_Display(&hi2c2);
 
 		DFP_Init(&huart6);
+		DFP_Volume(speaker_volume);
 
 		OLED_Char_Print("Complete!", 0, 8);
 		OLED_Display(&hi2c2);
@@ -1150,13 +1181,14 @@ void Debug_Mode(Debug_Select_t debug_kind)
 				OLED_Char_Print("Decide by StartSW", 0, 8);
 				OLED_Char_Print("Back by SW1", 0, 16);
 				OLED_Char_Print(" Connecting test", 0, 24);
-				OLED_Char_Print(" Reading Line", 0, 32);
+				OLED_Char_Print(" Reading Line angle", 0, 32);
+				OLED_Char_Print(" Reading Line data", 0, 40);
 				OLED_Char_Print(">", 0, __select_num * 8 + 24);
 				OLED_Display(&hi2c2);
 
 				if (sw2_state == 0) {
 					while (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0);
-					__select_num = (__select_num == 1) ? 0 : 1;
+					__select_num = (__select_num == 2) ? 0 : __select_num + 1;
 				}
 
 				if (start_sw_state == 0) {
@@ -1181,19 +1213,33 @@ void Debug_Mode(Debug_Select_t debug_kind)
 
 							OLED_Display(&hi2c2);
 						}
-					} else {
+					} else if (__select_num == 1){
 						while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 1) {
-							int line_angle = Line_Get();
+							double line_angle = Line_Get();
 
 							OLED_DataClear();
 							OLED_Char_Print("Reading Line Angle...", 0, 0);
 							OLED_Char_Print("Back by SW1", 0, 8);
 							OLED_Char_Print("angle:", 0, 56);
-							if (line_angle == 300) {
+							if (line_angle == 300.0) {
 								OLED_Char_Print("NonData", 36, 56);
 							} else {
-								OLED_Int_Print(line_angle, 36, 56);
+								OLED_Double_Print(line_angle, 36, 56);
 							}
+							OLED_Display(&hi2c2);
+						}
+
+						while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 0);
+					} else {
+						while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 1) {
+							Line_Get();
+
+							OLED_DataClear();
+							OLED_Char_Print("Reading Line Angle...", 0, 0);
+							OLED_Char_Print("Back by SW1", 0, 8);
+							OLED_Int_Print(__receive_buf[0], 0, 16);
+							OLED_Int_Print(__receive_buf[1], 0, 24);
+							OLED_Int_Print(__receive_buf[2], 0, 32);
 							OLED_Display(&hi2c2);
 						}
 
@@ -1339,6 +1385,91 @@ void Debug_Mode(Debug_Select_t debug_kind)
 
 			break;
 
+		case AUDIO_CHECK:
+			while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 1) {
+				static uint8_t play_flug = 0;
+
+				sw2_state = HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin);
+				start_sw_state = HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin);
+
+				if (DFPlayer_enable == 0) {
+					OLED_DataClear();
+					OLED_Char_Print("DFPlayer is disabled.", 0, 0);
+					OLED_Char_Print("Enable DFPlayer?", 0, 8);
+					OLED_Char_Print("Y : SW2 N : SW3", 0, 16);
+					OLED_Display(&hi2c2);
+
+					while (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 1 && HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin) == 1);
+
+					if (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0) {
+						DFPlayer_enable = 1;
+
+						OLED_Char_Print("DFPlayer Init...", 0, 24);
+						OLED_Display(&hi2c2);
+
+						DFP_Init(&huart6);
+						DFP_Volume(speaker_volume);
+
+						OLED_Char_Print("Complete!", 0, 32);
+						OLED_Display(&hi2c2);
+						HAL_Delay(1500);
+					} else {
+						break;
+					}
+				} else {
+					OLED_DataClear();
+					OLED_Char_Print("Select by SW2", 0, 0);
+					OLED_Char_Print("Decide by StartSW", 0, 8);
+					OLED_Char_Print("Back by SW1", 0, 16);
+					OLED_Char_Print(" Play Thomas", 0, 24);
+					OLED_Char_Print(" Volume change", 0, 32);
+					OLED_Char_Print(">", 0, __select_num * 8 + 24);
+					OLED_Display(&hi2c2);
+
+					if (sw2_state == 0) {
+						while (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0);
+						__select_num = (__select_num == 1) ? 0 : __select_num + 1;
+					}
+
+					if (start_sw_state == 0) {
+						while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 0);
+
+						if (__select_num == 0) {
+							if (play_flug == 0) {
+								DFP_Play(7);
+								play_flug = 1;
+							} else {
+								DFP_Pause();
+								play_flug = 0;
+							}
+						} else if (__select_num == 1) {
+							while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 1) {
+								OLED_DataClear();
+								OLED_Char_Print("Save and change : SW1", 0, 0);
+								OLED_Char_Print("UP : SW2 DOWN : SW3", 0, 8);
+								OLED_Char_Print("volume : ", 0, 16);
+								OLED_Int_Print(speaker_volume, 54, 16);
+								OLED_Line_Display(19, 35, 109, 35);
+								OLED_Circle_Draw(19 + speaker_volume * 3, 35, 4);
+								OLED_Display(&hi2c2);
+
+								if (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0) {
+									while (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0);
+									speaker_volume = (speaker_volume == 30) ? 30 : speaker_volume + 1;
+								} else if (HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin) == 0) {
+									while (HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin) == 0);
+									speaker_volume = (speaker_volume == 0) ? 0 : speaker_volume - 1;
+								}
+							}
+
+							while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 0);
+
+							DFP_Volume(speaker_volume);
+						}
+					}
+				}
+			}
+
 		default:
 			break;
 	}
@@ -1350,34 +1481,6 @@ double Ball_Angle(void)
 {
 	double x_val = 0.0;
 	double y_val = 0.0;
-	//uint16_t __Ball_val[8];
-	//uint16_t max_val = 0;
-	//uint8_t max_ch = 0;
-
-	/*for (int i = 0; i < 8; i++) {
-		__Ball_val[i] = 4095 - Ball_data[i];
-	}*/
-
-	/*max_val = __Ball_val[0];
-	for (int i = 1; i < 8; i++) {
-		if (max_val < __Ball_val[i]) {
-			max_val = __Ball_val[i];
-			max_ch++;
-		}
-	}
-
-	if (max_ch == 0) {
-		x_val = __Ball_val[7] * sin(Sensor_anlge[7]) + __Ball_val[0] + __Ball_val[1] * sin(Sensor_anlge[1]);
-		y_val = __Ball_val[7] * cos(Sensor_anlge[7]) + __Ball_val[1] * cos(Sensor_anlge[1]);
-	} else if (max_ch == 7){
-		x_val = __Ball_val[6] * sin(Sensor_anlge[6]) + __Ball_val[7] * sin(Sensor_anlge[7]) + __Ball_val[0];
-		y_val = __Ball_val[6] * cos(Sensor_anlge[6]) * __Ball_val[7] * cos(Sensor_anlge[7]);
-	} else {
-		for (int i = max_ch - 1; i <= max_ch + 1; i++) {
-			x_val += __Ball_val[i] * sin(Sensor_anlge[i]);
-			y_val += __Ball_val[i] * cos(Sensor_anlge[i]);
-		}
-	}*/
 
 	for (int i = 0; i < 8; i++) {
 		x_val += cos(Sensor_angle[i]) * (4095 - Ball_data[i]);
@@ -1407,21 +1510,34 @@ uint8_t Line_Conenct_Test(void)
 	}
 }
 
-int Line_Get(void)
+double Line_Get(void)
 {
-	uint8_t __receive_buf[2];
-	int line_angle = 0;
+	//uint8_t __receive_buf[3];
+
+	double x_val = 0.0;
+	double y_val = 0.0;
 
 	HAL_UART_Transmit(&huart2, request_line, 2, 1000);
 	if (HAL_UART_Receive(&huart2, __receive_buf, 2, 100) == HAL_OK) {
-		if (__receive_buf[0] > 1 || __receive_buf[1] > 180) {
-			return 300;
+		if (__receive_buf[0] == 0xFF && __receive_buf[1] == 0xFF && __receive_buf[2] == 0xFF) {
+			return 300.0;
 		} else {
-			line_angle = (__receive_buf[0] == 1) ? __receive_buf[1] * -1 : __receive_buf[1];
-			return line_angle;
+			x_val += cos(0.0) * ((__receive_buf[0] & (1 << 1)) >> 1);
+			y_val += sin(0.0) * ((__receive_buf[0] & (1 << 1)) >> 1) ;
+			x_val += cos(20.0 * PI / 180.0) * (__receive_buf[0] & (1 << 0));
+			y_val += sin(20.0 * PI / 180.0) * (__receive_buf[0] & (1 << 0));
+
+			for (int i = 0; i < 8; i++) {
+				x_val += cos((20.0 * (i + 2)) * PI / 180.0) * ((__receive_buf[1] & (1 << i)) >> i);
+				y_val += sin((20.0 * (i + 2)) * PI / 180.0) * ((__receive_buf[1] & (1 << i)) >> i);
+				x_val += cos((20.0 * (i + 10)) * PI / 180.0) * ((__receive_buf[2] & (1 << i)) >> i);
+				x_val += sin((20.0 * (i + 10)) * PI / 180.0) * ((__receive_buf[2] & (1 << i)) >> i);
+			}
+
+			return atan2(y_val, x_val) * 180.0 / PI;
 		}
 	} else {
-		return 300;
+		return 300.0;
 	}
 }
 
@@ -1478,35 +1594,31 @@ void M2_control(int speed)
 void M3_control(int speed)
 {
 	if (speed == 0) {
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
 		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
 	} else if (speed > 0 && speed < 1024) {
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, speed);
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
-	} else if (speed < 0 && speed > -1024) {
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, speed);
 		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, -speed);
+	} else if (speed < 0 && speed > -1024) {
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, -speed);
 	} else {
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 1023);
 		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 1023);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 1023);
 	}
 }
 
 void M4_control(int speed)
 {
 	if (speed == 0) {
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 0);
 		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, 0);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 0);
 	} else if (speed > 0 && speed < 1024) {
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, speed);
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 0);
-
-		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 1);
-	} else if (speed < 0 && speed > -1024) {
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, speed);
 		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, 0);
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, -speed);
-
-		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 0);
+	} else if (speed < 0 && speed > -1024) {
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 0);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, -speed);
 	} else {
 		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 1023);
 		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, 1023);
