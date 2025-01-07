@@ -111,7 +111,7 @@ static void MX_USART3_UART_Init(void);
 /* USER CODE BEGIN PFP */
 /*Init function*/
 void Thrcot_Init(void);
-
+void Thrcot_Init_Fast(void);
 /*Debug function*/
 void Debug_Mode(Debug_Select_t debug_kind);
 
@@ -188,7 +188,12 @@ int main(void)
   long long gz = 0;
   double angle = 0;
 
-  Thrcot_Init();
+  if (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0) {
+	  Thrcot_Init_Fast();
+	  while (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0);
+  } else {
+	  Thrcot_Init();
+  }
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -1161,6 +1166,33 @@ void Thrcot_Init(void)
 		OLED_Display(&hi2c2);
 		HAL_Delay(1500);
 	}
+
+	Motor_Init();
+}
+
+void Thrcot_Init_Fast(void)
+{
+	uint8_t Error_Data = 0;
+
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)Ball_data, 8);
+	hdma_adc1.Instance -> CR &= ~(DMA_IT_TC | DMA_IT_HT);
+
+	OLED_Init(&hi2c2, OLED_Init_Data, sizeof(OLED_Init_Data));
+	OLED_Thrcot_Large_Logo_Display(&hi2c2);
+	HAL_Delay(1000);
+	OLED_AllClear(&hi2c2);
+
+	do {
+		Error_Data = BMX055_Init(&hi2c2, 2, 500);
+	} while (Error_Data != 0);
+
+	gz_offset = Gyro_Offset_Z(1000);
+
+	Camera_enable = 1;
+	DFPlayer_enable = 1;
+
+	DFP_Init(&huart6);
+	DFP_Volume(speaker_volume);
 
 	Motor_Init();
 }
