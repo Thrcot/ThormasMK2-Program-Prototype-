@@ -88,7 +88,7 @@ uint16_t LinePin[18] = {
 
 uint8_t rx_buf[10];
 uint8_t return_id[2] = {0xF3, 0x03};
-uint8_t return_data[2] = {0xFF, 0xFF};
+uint8_t return_data[3] = {0xFF, 0xFF, 0xFF};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -145,25 +145,26 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  double x_val = 0.0;
-	  double y_val = 0.0;
+	  uint8_t LineGet[3] = {0x00};
 
 	  for (int i = 0; i < 18; i++) {
-		  uint8_t LineState = HAL_GPIO_ReadPin((GPIO_TypeDef*)(LinePort[i]), LinePin[i]);
+		  uint8_t LineState = 1 - HAL_GPIO_ReadPin((GPIO_TypeDef*)(LinePort[i]), LinePin[i]);
 
-		  if (LineState == 0) {
-			  x_val += cos(DEG_TO_RAD((360.0 / (double)(i * 20))));
-			  y_val += sin(DEG_TO_RAD((360.0 / (double)(i * 20))));
+		  if (i == 0 || i == 1) {
+			  LineGet[0] |= LineState << (1 - i);
+		  } else if (i >= 2 && i <= 9) {
+			  LineGet[1] |= LineState << (9 - i);
+		  } else {
+			  LineGet[2] |= LineState << (17 - i);
 		  }
 	  }
 
-	  if (x_val == 0.0 && y_val == 0.0) {
-		  return_data[0] = 0xFF;
-		  return_data[1] = 0xFF;
+	  if (LineGet[0] == 0x00 && LineGet[1] == 0x00 && LineGet[2] == 0x00) {
+		  return_data[0] = return_data[1] = return_data[2] = 0xFF;
 	  } else {
-		  int line_angle = RAD_TO_DEG(atan2(y_val, x_val));
-		  return_data[0] = (line_angle < 0) ? 1 : 0;
-		  return_data[1] = (line_angle < 0) ? -line_angle : line_angle;
+		  return_data[0] = LineGet[0];
+		  return_data[1] = LineGet[1];
+		  return_data[2] = LineGet[2];
 	  }
 
 	  HAL_UART_Receive_IT(&huart1, rx_buf, 2);
@@ -306,7 +307,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	if (rx_buf[0] == 0xF3 && rx_buf[1] == 0x03) {
 		HAL_UART_Transmit(&huart1, return_id, 2, 1000);
 	} else if (rx_buf[0] == 0xF0 && rx_buf[1] == 0x33) {
-		HAL_UART_Transmit(&huart1, return_data, 2, 1000);
+		HAL_UART_Transmit(&huart1, return_data, 3, 1000);
 	}
 }
 /* USER CODE END 4 */
