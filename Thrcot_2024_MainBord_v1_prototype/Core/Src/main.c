@@ -47,7 +47,7 @@ typedef enum {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define P_GAIN	5.6
+#define P_GAIN	25.3
 #define I_GAIN	0
 #define D_GAIN	0
 
@@ -92,6 +92,11 @@ uint16_t Ball_data[8] = {0};
 double Sensor_angle[8] = {0.0, 0.785398, 1.570796, 2.356194, 3.141592, 3.926990, 4.712388, 5.497787};
 
 uint8_t __receive_buf[3] = {0xFF, 0xFF, 0xFF};
+
+int8_t m1_offset = 1;
+int8_t m2_offset = -1;
+int8_t m3_offset = -1;
+int8_t m4_offset = 1;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -232,12 +237,6 @@ int main(void)
 			HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 0);
 			HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, 1);
 
-			OLED_AllClear(&hi2c2);
-			OLED_Char_Print("Debug Mode...", 0, 0);
-			OLED_Char_Print("SW1 : Stand-by Mode", 0, 8);
-			OLED_Display(&hi2c2);
-			HAL_Delay(1500);
-
 			while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 1) {
 				static Debug_Select_t debug = 0;
 				sw2_state = HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin);
@@ -309,9 +308,9 @@ int main(void)
 				start = DWT -> CYCCNT;
 
 				static double P_val = 0.0;
-				static double I_val = 0.0;
+				/*static double I_val = 0.0;
 				static double D_val = 0.0;
-				static double pre_P_val = 0.0;
+				static double pre_P_val = 0.0;*/
 
 				int M1_speed = 0;
 				int M2_speed = 0;
@@ -326,82 +325,37 @@ int main(void)
 					angle = angle + 360.0;
 				}
 
-				Line_angle = Line_Get();
-				Ball_angle = Ball_Angle();
+				P_val = 0.0 - angle;
+				M1_speed = M2_speed = M3_speed = M4_speed = P_val * P_GAIN;
 
-				if (Line_angle != 300.0) {
-					if (__receive_buf[0] != 0) {
-						Stright_control(180, 1023);
-						HAL_Delay(200);
-					} else {
-						Stright_control(Line_angle, 1023);
-						HAL_Delay(200);
-					}
-				} else {
-					if (/*angle >= 5.0 || angle <= -5.0*/0) {
-						int rotate_duty = 0;
-
-						P_val = -angle;
-						I_val += P_val * duration;
-						D_val = (P_val - pre_P_val) * duration;
-						pre_P_val = P_val;
-
-						rotate_duty = P_val * P_GAIN + I_val * I_GAIN + D_val * D_GAIN;
-						M1_speed = M2_speed = M3_speed = M4_speed = rotate_duty;
-					} else {
-						I_val = 0.0;
-						if (Ball_angle != 300.0) {
-							HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 1);
-
-							Ball_angle = Ball_angle * 180.0 / PI;
-
-							if (Ball_angle <= 5.0 && Ball_angle >= -5.0) {
-								M1_speed += sin((Ball_angle - 45.0) * PI / 180.0) * 1023;
-								M2_speed += sin((Ball_angle - 135.0) * PI / 180.0) * 1023;
-								M3_speed += sin((Ball_angle - 225.0) * PI / 180.0) * 1023;
-								M4_speed += sin((Ball_angle - 315.0) * PI / 180.0) * 1023;
-							} else if (Ball_angle <= 90.0 && Ball_angle >= -90.0) {
-								M1_speed += sin((Ball_angle - 45.0 + ROUND_P_1) * PI / 180.0) * 1023;
-								M2_speed += sin((Ball_angle - 135.0 + ROUND_P_1) * PI / 180.0) * 1023;
-								M3_speed += sin((Ball_angle - 225.0 + ROUND_P_1) * PI / 180.0) * 1023;
-								M4_speed += sin((Ball_angle - 315.0 + ROUND_P_1) * PI / 180.0) * 1023;
-							} else {
-								M1_speed += sin((Ball_angle - 45.0 + ROUND_P_2) * PI / 180.0) * 1023;
-								M2_speed += sin((Ball_angle - 135.0 + ROUND_P_2) * PI / 180.0) * 1023;
-								M3_speed += sin((Ball_angle - 225.0 + ROUND_P_2) * PI / 180.0) * 1023;
-								M4_speed += sin((Ball_angle - 315.0 + ROUND_P_2) * PI / 180.0) * 1023;
-							}
-						} else {
-							HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, 0);
-						}
-					}
-
-					/*int Motor_speed[3];
-					int max = (M1_speed < 0) ? -M1_speed : M1_speed;
-					double speed_offset = 0.0;
-
-					Motor_speed[0] = (M2_speed < 0) ? -M2_speed : M2_speed;
-					Motor_speed[1] = (M3_speed < 0) ? -M3_speed : M3_speed;
-					Motor_speed[2] = (M4_speed < 0) ? -M4_speed : M4_speed;
-
-					for (int i = 0; i < 3; i++) {
-						if (Motor_speed[i] > max) {
-							max = Motor_speed[i];
-						}
-					}
-
-					speed_offset = 1023.0 / (double)max;
-
-					M1_speed *= speed_offset;
-					M2_speed *= speed_offset;
-					M3_speed *= speed_offset;
-					M4_speed *= speed_offset;*/
-
-					M1_control(M1_speed);
-					M2_control(M2_speed);
-					M3_control(M3_speed);
-					M4_control(M4_speed);
+				if (M1_speed < -1023) {
+					M1_speed = -1023;
+				} else if (M1_speed > 1023) {
+					M1_speed = 1023;
 				}
+
+				if (M2_speed < -1023) {
+					M2_speed = -1023;
+				} else if (M2_speed > 1023) {
+					M2_speed = 1023;
+				}
+
+				if (M3_speed < -1023) {
+					M3_speed = -1023;
+				} else if (M3_speed > 1023) {
+					M3_speed = 1023;
+				}
+
+				if (M4_speed < -1023) {
+					M4_speed = -1023;
+				} else if (M4_speed > 1023) {
+					M4_speed = 1023;
+				}
+
+				M1_control(M1_speed);
+				M2_control(M2_speed);
+				M3_control(M3_speed);
+				M4_control(M4_speed);
 
 				stop = DWT -> CYCCNT;
 				duration = (double)(stop - start) / 180000000.0;
@@ -1200,7 +1154,7 @@ void Thrcot_Init_Fast(void)
 void Debug_Mode(Debug_Select_t debug_kind)
 {
 	uint8_t __select_num = 0;
-	uint8_t sw2_state, start_sw_state;
+	uint8_t sw2_state, sw3_state, start_sw_state;
 
 	switch (debug_kind) {
 		case LINE_CHECK:
@@ -1348,6 +1302,7 @@ void Debug_Mode(Debug_Select_t debug_kind)
 		case MOTOR_CHECK:
 			while (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 1) {
 				sw2_state = HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin);
+				sw3_state = HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin);
 				start_sw_state = HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin);
 
 				OLED_DataClear();
@@ -1355,9 +1310,13 @@ void Debug_Mode(Debug_Select_t debug_kind)
 				OLED_Char_Print("Forward by StartSW", 0, 8);
 				OLED_Char_Print("Back by SW1", 0, 16);
 				OLED_Char_Print(" Motor1", 0, 24);
+				OLED_Char_Print((m1_offset == 1) ? "forward" : "backward", 50, 24);
 				OLED_Char_Print(" Motor2", 0, 32);
+				OLED_Char_Print((m2_offset == 1) ? "forward" : "backward", 50, 32);
 				OLED_Char_Print(" Motor3", 0, 40);
+				OLED_Char_Print((m3_offset == 1) ? "forward" : "backward", 50, 40);
 				OLED_Char_Print(" Motor4", 0, 48);
+				OLED_Char_Print((m4_offset == 1) ? "forward" : "backward", 50, 48);
 				OLED_Char_Print(" All Motor", 0, 56);
 				OLED_Char_Print(">", 0, __select_num * 8 + 24);
 				OLED_Display(&hi2c2);
@@ -1365,6 +1324,28 @@ void Debug_Mode(Debug_Select_t debug_kind)
 				if (sw2_state == 0) {
 					while (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 0);
 					__select_num = (__select_num == 4) ? 0 : __select_num + 1;
+				}
+
+				if (sw3_state == 0) {
+					while (HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin) == 0);
+
+					switch (__select_num) {
+						case 0:
+							m1_offset *= -1;
+							break;
+
+						case 1:
+							m2_offset *= -1;
+							break;
+
+						case 2:
+							m3_offset *= -1;
+							break;
+
+						case 3:
+							m4_offset *= -1;
+							break;
+					}
 				}
 
 				if (start_sw_state == 0) {
@@ -1591,6 +1572,8 @@ void Motor_Init(void)
 
 void M1_control(int speed)
 {
+	speed *= m1_offset;
+
 	if (speed == 0) {
 		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
 		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, 0);
@@ -1608,6 +1591,8 @@ void M1_control(int speed)
 
 void M2_control(int speed)
 {
+	speed *= m2_offset;
+
 	if (speed == 0) {
 		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, 0);
 		__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_4, 0);
@@ -1625,6 +1610,8 @@ void M2_control(int speed)
 
 void M3_control(int speed)
 {
+	speed *= m3_offset;
+
 	if (speed == 0) {
 		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
 		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
@@ -1642,6 +1629,8 @@ void M3_control(int speed)
 
 void M4_control(int speed)
 {
+	speed *= m4_offset;
+
 	if (speed == 0) {
 		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, 0);
 		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 0);
