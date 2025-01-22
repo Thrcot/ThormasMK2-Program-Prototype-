@@ -47,9 +47,9 @@ typedef enum {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define P_GAIN	25.3
+#define P_GAIN	28.8
 #define I_GAIN	0
-#define D_GAIN	0
+#define D_GAIN	7.2
 
 #define ROUND_P_1	30.0
 #define ROUND_P_2	50.0
@@ -134,6 +134,10 @@ void M2_control(int speed);
 void M3_control(int speed);
 void M4_control(int speed);
 void Stright_control(double angle, int speed);
+
+/*other functions*/
+double Return_Pval(double p);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -307,10 +311,10 @@ int main(void)
 			while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin)) {
 				start = DWT -> CYCCNT;
 
-				static double P_val = 0.0;
-				/*static double I_val = 0.0;
-				static double D_val = 0.0;
-				static double pre_P_val = 0.0;*/
+				double P_val = 0.0;
+				//static double I_val = 0.0;
+				double D_val = 0.0;
+				static double pre_P_val = 0.0;
 
 				int M1_speed = 0;
 				int M2_speed = 0;
@@ -326,7 +330,8 @@ int main(void)
 				}
 
 				P_val = 0.0 - angle;
-				M1_speed = M2_speed = M3_speed = M4_speed = P_val * P_GAIN;
+				D_val = (P_val - pre_P_val) * duration;
+				M1_speed = M2_speed = M3_speed = M4_speed = Return_Pval(P_val) + D_val * D_GAIN;
 
 				if (M1_speed < -1023) {
 					M1_speed = -1023;
@@ -356,6 +361,8 @@ int main(void)
 				M2_control(M2_speed);
 				M3_control(M3_speed);
 				M4_control(M4_speed);
+
+				pre_P_val = P_val;
 
 				stop = DWT -> CYCCNT;
 				duration = (double)(stop - start) / 180000000.0;
@@ -1676,6 +1683,17 @@ void Stright_control(double angle, int speed)
 	M2_control(M2_speed * speed_offset);
 	M3_control(M3_speed * speed_offset);
 	M4_control(M4_speed * speed_offset);
+}
+
+double Return_Pval(double p)
+{
+	if (p <= -20.0) {
+		return -P_GAIN * 0.125 * (p + 180.0) + 6.25 * p + 125.0;
+	} else if (p >= 20.0) {
+		return -P_GAIN * 0.125 * (p - 180.0) + 6.25 * p - 125.0;
+	} else {
+		return p * P_GAIN;
+	}
 }
 /* USER CODE END 4 */
 
