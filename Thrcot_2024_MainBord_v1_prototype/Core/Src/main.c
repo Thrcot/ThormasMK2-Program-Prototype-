@@ -47,9 +47,9 @@ typedef enum {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define P_GAIN	28.8
+#define P_GAIN	27.2
 #define I_GAIN	0
-#define D_GAIN	7.2
+#define D_GAIN	100000.0
 
 #define ROUND_P_1	30.0
 #define ROUND_P_2	50.0
@@ -284,13 +284,13 @@ int main(void)
 			while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 1) {
 				start = DWT -> CYCCNT;
 
-				gz = Gyro_Get_Z();
-				angle += -gz * duration * (500.0 / 32767.0);
+				gz = Gyro_Get_Z() - gz_offset;
+				angle += -gz * duration * (2000.0 / 32767.0);
 
 				OLED_DataClear();
 				OLED_Char_Print("Game Mode...", 0, 0);
 				OLED_Char_Print("Please press StartSW", 0, 8);
-				OLED_Int_Print(Gyro_Get_Z(), 0, 16);
+				OLED_Int_Print(gz, 0, 16);
 				OLED_Double_Print(duration, 0, 24);
 				OLED_Double_Print(angle, 0, 32);
 				OLED_Display(&hi2c2);
@@ -321,8 +321,8 @@ int main(void)
 				int M3_speed = 0;
 				int M4_speed = 0;
 
-				gz = Gyro_Get_Z();
-				angle += -1 * gz * duration * (500.0 / 32767.0);
+				gz = Gyro_Get_Z() - gz_offset;
+				angle += -1 * gz * duration * (2000.0 / 32767.0);
 				if (angle > 180.0) {
 					angle = angle - 360.0;
 				} else if (angle < -180.0) {
@@ -367,11 +367,16 @@ int main(void)
 				stop = DWT -> CYCCNT;
 				duration = (double)(stop - start) / 180000000.0;
 			}
+			OLED_DataClear();
+			OLED_Double_Print(duration, 0, 0);
+			OLED_Display(&hi2c2);
 
 			M1_control(0);
 			M2_control(0);
 			M3_control(0);
 			M4_control(0);
+
+			HAL_Delay(2000);
 
 			while (HAL_GPIO_ReadPin(Start_sw_GPIO_Port, Start_sw_Pin) == 0);
 			robot_state = STANDBY_MODE;
@@ -1014,7 +1019,7 @@ void Thrcot_Init(void)
 	OLED_Char_Print("BMX055...", 0, 0);
 	OLED_Display(&hi2c2);
 	do {
-		Error_Data = BMX055_Init(&hi2c2, 2, 500);
+		Error_Data = BMX055_Init(&hi2c2, 2, 2000);
 	} while (Error_Data != 0);
 
 	OLED_Char_Print("         OK", 0, 0);
@@ -1144,7 +1149,7 @@ void Thrcot_Init_Fast(void)
 	OLED_AllClear(&hi2c2);
 
 	do {
-		Error_Data = BMX055_Init(&hi2c2, 2, 500);
+		Error_Data = BMX055_Init(&hi2c2, 2, 2000);
 	} while (Error_Data != 0);
 
 	gz_offset = Gyro_Offset_Z(1000);
