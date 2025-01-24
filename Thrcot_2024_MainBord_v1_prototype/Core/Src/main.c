@@ -43,13 +43,20 @@ typedef enum {
 	MOTOR_CHECK,
 	AUDIO_CHECK,
 } Debug_Select_t;
+
+typedef enum {
+	M1,
+	M2,
+	M3,
+	M4
+} MOTOR_NUM;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define P_GAIN	27.2
+#define P_GAIN	27.5
 #define I_GAIN	0
-#define D_GAIN	100000.0
+#define D_GAIN	0
 
 #define ROUND_P_1	30.0
 #define ROUND_P_2	50.0
@@ -129,6 +136,7 @@ double Line_Get(void);
 
 /*motor control function*/
 void Motor_Init(void);
+int Return_Speed(MOTOR_NUM Mx, double angle, int speed);
 void M1_control(int speed);
 void M2_control(int speed);
 void M3_control(int speed);
@@ -312,14 +320,18 @@ int main(void)
 				start = DWT -> CYCCNT;
 
 				double P_val = 0.0;
-				//static double I_val = 0.0;
 				double D_val = 0.0;
 				static double pre_P_val = 0.0;
+				double spin_speed = 0.0;
 
+				double move_angle = 0.0;
 				int M1_speed = 0;
 				int M2_speed = 0;
 				int M3_speed = 0;
 				int M4_speed = 0;
+				int all_speed[4];
+				int max_speed = 0;
+				double speed_offset = 0.0;
 
 				gz = Gyro_Get_Z() - gz_offset;
 				angle += -1 * gz * duration * (2000.0 / 32767.0);
@@ -331,36 +343,52 @@ int main(void)
 
 				P_val = 0.0 - angle;
 				D_val = (P_val - pre_P_val) * duration;
-				M1_speed = M2_speed = M3_speed = M4_speed = Return_Pval(P_val) + D_val * D_GAIN;
+				spin_speed = Return_Pval(P_val) + D_val * D_GAIN;
 
-				if (M1_speed < -1023) {
-					M1_speed = -1023;
-				} else if (M1_speed > 1023) {
-					M1_speed = 1023;
+				Ball_angle  = Ball_Angle();
+
+				if (angle >= -20.0 && angle <= 20.0) {
+					//M1_speed = M2_speed = M3_speed = M4_speed = spin_speed / 2.0;
+
+					Ball_angle *= 180.0 / PI;
+
+					if (Ball_angle <= 5.0 && Ball_angle >= -5.0) {
+						move_angle = Ball_angle;
+					} else {
+						move_angle = (Ball_angle < 0.0) ? Ball_angle - 45.0 : Ball_angle + 45.0;
+					}
+
+					/*M1_speed += Return_Speed(M1, move_angle, 1023);
+					M2_speed += Return_Speed(M2, move_angle, 1023);
+					M3_speed += Return_Speed(M3, move_angle, 1023);
+					M4_speed += Return_Speed(M4, move_angle, 1023);
+
+					all_speed[0] = abs(M1_speed);
+					all_speed[1] = abs(M2_speed);
+					all_speed[2] = abs(M3_speed);
+					all_speed[3] = abs(M4_speed);
+
+					max_speed = all_speed[0];
+					for (uint8_t i = 1; i < 4; i++) {
+						max_speed = (max_speed < all_speed[i]) ? all_speed[i] : max_speed;
+					}
+
+					speed_offset = 1023.0 / max_speed;
+
+					M1_speed *= speed_offset;
+					M2_speed *= speed_offset;
+					M3_speed *= speed_offset;
+					M4_speed *= speed_offset;*/
+
+					Stright_control(move_angle, 1023);
+				} else {
+					M1_speed = M2_speed = M3_speed = M4_speed = spin_speed;
+
+					M1_control(M1_speed);
+					M2_control(M2_speed);
+					M3_control(M3_speed);
+					M4_control(M4_speed);
 				}
-
-				if (M2_speed < -1023) {
-					M2_speed = -1023;
-				} else if (M2_speed > 1023) {
-					M2_speed = 1023;
-				}
-
-				if (M3_speed < -1023) {
-					M3_speed = -1023;
-				} else if (M3_speed > 1023) {
-					M3_speed = 1023;
-				}
-
-				if (M4_speed < -1023) {
-					M4_speed = -1023;
-				} else if (M4_speed > 1023) {
-					M4_speed = 1023;
-				}
-
-				M1_control(M1_speed);
-				M2_control(M2_speed);
-				M3_control(M3_speed);
-				M4_control(M4_speed);
 
 				pre_P_val = P_val;
 
@@ -1580,6 +1608,31 @@ void Motor_Init(void)
 
 	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_2);
+}
+
+int Return_Speed(MOTOR_NUM Mx, double angle, int speed)
+{
+	int return_speed;
+
+	switch (Mx) {
+		case M1:
+			return_speed = sin((angle - 45.0) * PI / 180.0) * speed;
+			break;
+
+		case M2:
+			return_speed = sin((angle - 135.0) * PI / 180.0) * speed;
+			break;
+
+		case M3:
+			return_speed = sin((angle - 225.0) * PI / 180.0) * speed;
+			break;
+
+		case M4:
+			return_speed = sin((angle - 315.0) * PI / 180.0) * speed;
+			break;
+	}
+
+	return return_speed;
 }
 
 void M1_control(int speed)
