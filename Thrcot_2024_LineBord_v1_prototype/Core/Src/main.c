@@ -83,7 +83,7 @@ uint16_t LinePin[18] = {
 		(uint16_t)(LS5_Pin),
 		(uint16_t)(LS4_Pin),
 		(uint16_t)(LS3_Pin),
-		(uint16_t)(LS2_Pin),
+		(uint16_t)(LS2_Pin)
 };
 
 uint8_t rx_buf[10];
@@ -145,13 +145,13 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  uint8_t LineGet[3] = {0x00};
+	  uint8_t LineGet[3] = {0x00, 0x00, 0x00};
 
 	  for (int i = 0; i < 18; i++) {
 		  uint8_t LineState = 1 - HAL_GPIO_ReadPin((GPIO_TypeDef*)(LinePort[i]), LinePin[i]);
 
 		  if (i == 0 || i == 1) {
-			  LineGet[0] |= LineState << (1 - i);
+			  LineGet[0] |= LineState << (i - 1);
 		  } else if (i >= 2 && i <= 9) {
 			  LineGet[1] |= LineState << (9 - i);
 		  } else {
@@ -159,6 +159,7 @@ int main(void)
 		  }
 	  }
 
+	  return_data[0] = return_data[1] = return_data[2] = 0x00;
 	  if (LineGet[0] == 0x00 && LineGet[1] == 0x00 && LineGet[2] == 0x00) {
 		  return_data[0] = return_data[1] = return_data[2] = 0xFF;
 	  } else {

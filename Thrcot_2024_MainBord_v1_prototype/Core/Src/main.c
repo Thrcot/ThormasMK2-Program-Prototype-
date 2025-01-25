@@ -329,9 +329,6 @@ int main(void)
 				int M2_speed = 0;
 				int M3_speed = 0;
 				int M4_speed = 0;
-				int all_speed[4];
-				int max_speed = 0;
-				double speed_offset = 0.0;
 
 				gz = Gyro_Get_Z() - gz_offset;
 				angle += -1 * gz * duration * (2000.0 / 32767.0);
@@ -345,49 +342,35 @@ int main(void)
 				D_val = (P_val - pre_P_val) * duration;
 				spin_speed = Return_Pval(P_val) + D_val * D_GAIN;
 
-				Ball_angle  = Ball_Angle();
+				Line_angle = Line_Get();
 
-				if (angle >= -20.0 && angle <= 20.0) {
-					//M1_speed = M2_speed = M3_speed = M4_speed = spin_speed / 2.0;
+				if (Line_angle == 300.0) {
+					Ball_angle  = Ball_Angle();
 
-					Ball_angle *= 180.0 / PI;
+					if (angle >= -20.0 && angle <= 20.0) {
 
-					if (Ball_angle <= 5.0 && Ball_angle >= -5.0) {
-						move_angle = Ball_angle;
+						Ball_angle *= 180.0 / PI;
+
+						if (Ball_angle <= 5.0 && Ball_angle >= -5.0) {
+							move_angle = Ball_angle;
+						} else {
+							move_angle = (Ball_angle < 0.0) ? Ball_angle - 45.0 : Ball_angle + 45.0;
+						}
+
+						Stright_control(move_angle, 1023);
 					} else {
-						move_angle = (Ball_angle < 0.0) ? Ball_angle - 45.0 : Ball_angle + 45.0;
+						M1_speed = M2_speed = M3_speed = M4_speed = spin_speed;
+
+						M1_control(M1_speed);
+						M2_control(M2_speed);
+						M3_control(M3_speed);
+						M4_control(M4_speed);
 					}
-
-					/*M1_speed += Return_Speed(M1, move_angle, 1023);
-					M2_speed += Return_Speed(M2, move_angle, 1023);
-					M3_speed += Return_Speed(M3, move_angle, 1023);
-					M4_speed += Return_Speed(M4, move_angle, 1023);
-
-					all_speed[0] = abs(M1_speed);
-					all_speed[1] = abs(M2_speed);
-					all_speed[2] = abs(M3_speed);
-					all_speed[3] = abs(M4_speed);
-
-					max_speed = all_speed[0];
-					for (uint8_t i = 1; i < 4; i++) {
-						max_speed = (max_speed < all_speed[i]) ? all_speed[i] : max_speed;
-					}
-
-					speed_offset = 1023.0 / max_speed;
-
-					M1_speed *= speed_offset;
-					M2_speed *= speed_offset;
-					M3_speed *= speed_offset;
-					M4_speed *= speed_offset;*/
-
-					Stright_control(move_angle, 1023);
 				} else {
-					M1_speed = M2_speed = M3_speed = M4_speed = spin_speed;
+					Line_angle = Line_angle * 180.0 / PI;
 
-					M1_control(M1_speed);
-					M2_control(M2_speed);
-					M3_control(M3_speed);
-					M4_control(M4_speed);
+					Stright_control(-Line_angle, 1023);
+					HAL_Delay(2000);
 				}
 
 				pre_P_val = P_val;
@@ -1250,7 +1233,7 @@ void Debug_Mode(Debug_Select_t debug_kind)
 							if (line_angle == 300.0) {
 								OLED_Char_Print("NonData", 36, 56);
 							} else {
-								OLED_Double_Print(line_angle, 36, 56);
+								OLED_Double_Print(line_angle * 180.0 / PI, 36, 56);
 							}
 							OLED_Display(&hi2c2);
 						}
@@ -1565,33 +1548,33 @@ uint8_t Line_Conenct_Test(void)
 
 double Line_Get(void)
 {
-	//uint8_t __receive_buf[3];
-
-	double x_val = 0.0;
-	double y_val = 0.0;
+	double line_angle;
 
 	HAL_UART_Transmit(&huart2, request_line, 2, 1000);
-	if (HAL_UART_Receive(&huart2, __receive_buf, 2, 100) == HAL_OK) {
-		if (__receive_buf[0] == 0xFF && __receive_buf[1] == 0xFF && __receive_buf[2] == 0xFF) {
-			return 300.0;
+	if (HAL_UART_Receive(&huart2, __receive_buf, 3, 100) == HAL_OK) {
+		if ((__receive_buf[0] == 0xFF || __receive_buf[0] == 0x03) && __receive_buf[1] == 0xFF && __receive_buf[2] == 0xFF) {
+			line_angle = 300.0;
 		} else {
-			x_val += cos(0.0) * ((__receive_buf[0] & (1 << 1)) >> 1);
-			y_val += sin(0.0) * ((__receive_buf[0] & (1 << 1)) >> 1) ;
-			x_val += cos(20.0 * PI / 180.0) * (__receive_buf[0] & (1 << 0));
-			y_val += sin(20.0 * PI / 180.0) * (__receive_buf[0] & (1 << 0));
+			uint32_t line_data = (__receive_buf[0] << 16) | (__receive_buf[1] << 8) | __receive_buf[2];
+			double x_val = 0.0;
+			double y_val = 0.0;
 
-			for (int i = 0; i < 8; i++) {
-				x_val += cos((20.0 * (i + 2)) * PI / 180.0) * ((__receive_buf[1] & (1 << i)) >> i);
-				y_val += sin((20.0 * (i + 2)) * PI / 180.0) * ((__receive_buf[1] & (1 << i)) >> i);
-				x_val += cos((20.0 * (i + 10)) * PI / 180.0) * ((__receive_buf[2] & (1 << i)) >> i);
-				x_val += sin((20.0 * (i + 10)) * PI / 180.0) * ((__receive_buf[2] & (1 << i)) >> i);
+			for (uint8_t i = 0; i < 18; i++) {
+				uint8_t line_bit = (line_data & (1U << (17 - i))) >> (17 - i);
+
+				if (line_bit != 0) {
+					x_val += cos((20.0 * (double)i) * PI / 180.0);
+					y_val += sin((20.0 * (double)i) * PI / 180.0);
+				}
 			}
 
-			return atan2(y_val, x_val) * 180.0 / PI;
+			line_angle = (x_val == 0.0 && y_val == 0.0) ? 300.0 : atan2(y_val, x_val);
 		}
 	} else {
-		return 300.0;
+		line_angle = 300.0;
 	}
+
+	return line_angle;
 }
 
 void Motor_Init(void)
